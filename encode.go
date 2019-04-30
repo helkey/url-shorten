@@ -5,59 +5,62 @@ package main
 import (
 	"errors"
 	"fmt"
+	// "github.com/stretchr/testify/assert"
+	"math/rand"
 	"net"
 	"net/url"
+	"testing"
 )
 
-// Number of bits for addr field and number of bits for database shard
-//   (may be increased in stages if service becomes popular and
-//   larger URL space and more database shards is needed)
-const bitsEncode = 12 // num bits for encoded address
-const bitsEncodeLong = 15 // num bits for long encoded address
-const bitShift = uint(bitsEncodeLong - bitsEncode)
-const bitsShard = 3 // number database sharding bits
+// Number of chars for addr field
+//   (may be increased in stages if service becomes popular and larger URL space is needed)
 const charEncode = 10 // number chars for encoded address
-const charEncodeLong = 12 // number chars for long encoded address
+const charEncodeLong = 14 // number chars for long encoded address
+const charExtend = charEncodeLong - charEncode // additional chars for higher security
 
-const numDig = 10 // number of digits
-const numLett = 26 // number of letters
-const numChar = 2 * numLett + numDig // number of characters used for encoding
+// Character encoding
+const nDig = 10 // number of digits
+const nLett = 26 // number of letters
+const nChar = 2 * nLett + nDig // number of characters used for encoding
 
 
 func main() {
-	// invertEncode("eNcOdEtHiS")
-	invertEncode("aazzAAZZ0099")
+	test()
 }
 
 // Encode ULR string by with counter and database shard
-func Encode(longURL string, address, nAddr, iShard uint) (string, error) {
-	lengthen, err := urlGrayListed(longURL)
+func EncodeURL(longURL string, address, iShard uint64, nAddr uint) (string, error) {
+	urlEncode := address | iShard // include database shard
+	encoded, err := encodeAddr(urlEncode, charEncode)
 	if err != nil {
 		return "", err
 	}
-	urlEncode := address
-	nChars := charEncode
-	if lengthen {
-		rand := uint(0) // random bits to lengthen URL
-		urlEncode = (address << bitShift) | rand
-		nChars = charEncodeLong
-	}
-	urlEncode = urlEncode | iShard // include database shard
-	encoded, err := encodeURL(urlEncode, nChars)
-	if err != nil {
-		return "", err
-	}
-	if len(encoded) != numChar {
+	if len(encoded) != charEncode {
 		return "", errors.New("Encoded URL wrong length")
 	}
-	return encoded, nil
+
+	// Check for gray-listed domains
+	lengthen, err := urlGrayListed(longURL)
+	if (err != nil) || !lengthen {
+		return encoded, nil
+	}
+	sRand := randString(charExtend)
+	return sRand + encoded, nil
+}
+
+// Generate rand string of encoded characters of specified length
+func randString(strLen int) string {
+	sRand := ""
+	for i := 0; i < strLen; i++ {
+		sRand = sRand + string(numChar[rand.Intn(nChar)])
+	}
+	return sRand
 }
 
 var grayList = map[string]struct{}{"box.com":{}, "dropbox.com":{}, "googlemaps.com":{}}
 // Sensitive domains to be encoded with longer shortened URL
 // https://gobyexample.com/url-parsing
 func urlGrayListed(longURL string) (bool, error) {
-	// fmt.Println(grayList)
 	u, err := url.Parse(longURL)
 	if err != nil {
 		fmt.Println("Failed parse")
@@ -81,28 +84,30 @@ func urlGrayListed(longURL string) (bool, error) {
 	return false, nil
 }
 
-func bin2char() []byte {
-	binChar := make([]byte, numChar)
-	for i:=0; i < numLett; i++ {
-		binChar[i] = 'a' + byte(i)
-		binChar[i + numLett] = 'A' + byte(i)
-		if i < numDig {
-			binChar[i + 2 * numLett] = '0' + byte(i)
+func num2char() []byte {
+	numChar := make([]byte, nChar)
+	for i:=0; i < nLett; i++ {
+		if i < nDig {
+			numChar[i] = '0' + byte(i)
 		}
+		numChar[i + nDig] = 'a' + byte(i)
+		numChar[i + nDig + nLett] = 'A' + byte(i)
+
 	}
-	return binChar
+	return numChar
 }
-var binChar = bin2char()
+var numChar = num2char()
 
 // Convert binary value to 
-func encodeURL(address uint, nChars int) (string, error) {
+func encodeAddr(address uint64, nChars int) (string, error) {
 	encoded := ""
 	// Convert 'address' to base numChar;
 	//   convert each digit to character representation
 	for i := 0; i < nChars; i++  {
-		charVal := address % numChar
-		address = address / numChar
-		encoded = string(binChar[charVal]) + encoded
+		charVal := address % nChar
+		address = address / nChar
+		// Construct 'encoded' string from right to left
+		encoded = string(numChar[charVal]) + encoded
 	}
 	// return "", errors.New("URL encode failed")
 	return encoded, nil
@@ -119,23 +124,39 @@ func testGrayListed() {
 }
 
 // Invert address encoding process for generating test vectors
-func invertEncode(encoded string) uint {
-	if _, ok := charBin['a']; !ok {
-		invertCharBin()
+func invertEncode(encoded string) uint64 {
+	addr := uint64(0)
+	fmt.Print("invertEncode ", encoded, ": " )
+	for _, char := range encoded {
+		// char := encoded[i]
+		addr = nChar * addr + uint64(charNum[byte(char)])
+		fmt.Print(charNum[byte(char)], ", ")
 	}
-	addr := uint(0)
-	for i := len(encoded) - 1; i >= 0; i-- {
-		addr = numChar * addr + charBin[encoded[i]]
-		fmt.Print(charBin[encoded[i]], ", ")
-	}
-	fmt.Println('\n', addr)
+	fmt.Println(";  ", addr, (uint64(1)<<63)/addr)
 	return addr
 }
 
-// Invert binChar mapping for generating test vectors
-var charBin = make(map[byte]uint)
-func invertCharBin() {
-	for i, b := range binChar {
-		charBin[b] = uint(i)
+// Invert numChar mapping for generating test vectors
+func invertCharNum() map[byte]uint {
+	charNum := map[byte]uint{}
+	for i, b := range numChar {
+		charNum[b] = uint(i)
 	}
+	return charNum
+}
+var charNum = invertCharNum()
+
+
+func TestEncode(t *testing.T) {
+	const maxCharEncode = 10 // max characters for uint64 
+	if charEncode > maxCharEncode {
+		t.Errorf("charEncode Exceeded max chars for uint64 representation")
+	}
+}
+
+func test() {
+	en1 := "ABCabs0123"
+	inv := invertEncode(en1)
+	encoded, _ := encodeAddr(inv, len(en1))
+	fmt.Println(encoded)
 }
