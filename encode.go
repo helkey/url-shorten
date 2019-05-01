@@ -8,44 +8,72 @@ import (
 	// "github.com/stretchr/testify/assert"
 	"math/rand"
 	"net"
-	"net/url"
+	"net/url" // url.Parse
 	"testing"
+	"time"
 )
+
+var grayList = map[string]struct{}{"box.com":{}, "dropbox.com":{}, "googlemaps.com":{}}
 
 // Number of chars for addr field
 //   (may be increased in stages if service becomes popular and larger URL space is needed)
-const charEncode = 10 // number chars for encoded address
-const charEncodeLong = 14 // number chars for long encoded address
-const charExtend = charEncodeLong - charEncode // additional chars for higher security
+const charAddr = 10 // number chars for encoded address
+const charRand = 2 // number additional random chars
+const charRandLong = 4 // additional random chars for higher security
+const nShard = 8 // number of key-val database shards
 
 // Character encoding
 const nDig = 10 // number of digits
 const nLett = 26 // number of letters
 const nChar = 2 * nLett + nDig // number of characters used for encoding
 
+// Round down max rand integer to avoid overflow when ORing with shard number
+var maxRand = ((pow(nChar, charRand)- 1) / nShard) * nShard
+var maxRandLong = ((pow(nChar, charRandLong)- 1) / nShard) * nShard
+
 
 func main() {
-	test()
+	rand.Seed(time.Now().UnixNano()) // pick random seed
+	// test()
+	en := "ABCabs0123"
+	s, _ := EncodeURL("https://goog.com", invertEncode(en), 1)
+	fmt.Println(s)
+	s, _ = EncodeURL("https://dropbox.com", invertEncode(en), 1)
+	fmt.Println(s)
 }
 
 // Encode ULR string by with counter and database shard
-func EncodeURL(longURL string, address, iShard uint64, nAddr uint) (string, error) {
-	urlEncode := address | iShard // include database shard
-	encoded, err := encodeAddr(urlEncode, charEncode)
+func EncodeURL(longURL string, address, iShard uint64) (string, error) {
+	encodeA, err := encodeAddr(address, charAddr)
 	if err != nil {
 		return "", err
 	}
-	if len(encoded) != charEncode {
-		return "", errors.New("Encoded URL wrong length")
+	if len(encodeA) != charAddr {
+		return "", errors.New("Encoded base address wrong length")
 	}
 
 	// Check for gray-listed domains
-	lengthen, err := urlGrayListed(longURL)
-	if (err != nil) || !lengthen {
-		return encoded, nil
+	lengthen := urlGrayListed(longURL)
+	charR := charRand
+
+	maxR := maxRand
+	if lengthen {
+		charR = charRandLong
+		maxR = maxRandLong
 	}
-	sRand := randString(charExtend)
-	return sRand + encoded, nil
+
+	// String extension with rand number & shard ID
+	fmt.Println(uint64(rand.Intn(maxR)))
+	fmt.Println(nShard, ^(uint64(nShard)), ^(uint64(0)))
+	randExt := (uint64(rand.Intn(maxR)) & ^(uint64(nShard))) | iShard
+	encodeR, err := encodeAddr(randExt, charR)
+	if err != nil {
+		return "", err
+	}
+	if len(encodeR) != charR {
+		return "", errors.New("Encoded random extension wrong length")
+	}
+	return encodeR + encodeA, nil
 }
 
 // Generate rand string of encoded characters of specified length
@@ -57,14 +85,13 @@ func randString(strLen int) string {
 	return sRand
 }
 
-var grayList = map[string]struct{}{"box.com":{}, "dropbox.com":{}, "googlemaps.com":{}}
 // Sensitive domains to be encoded with longer shortened URL
 // https://gobyexample.com/url-parsing
-func urlGrayListed(longURL string) (bool, error) {
+func urlGrayListed(longURL string) bool {
 	u, err := url.Parse(longURL)
 	if err != nil {
-		fmt.Println("Failed parse")
-		return false, nil // use default shortening length
+		// Failed parse - assume domain not gray-listed
+		return false
 	}
 	host := u.Host
 	if u.Port() != "" {
@@ -74,14 +101,14 @@ func urlGrayListed(longURL string) (bool, error) {
 	if (len(host) > len("www")) && host[:3] == "www" {
 		host = host[4:]
 	}
-	fmt.Println("host:", host)
 	// Check if domain is gray-listed
+	// fmt.Println("host:", host)
 	if _, inList := grayList[host]; inList {
-		fmt.Println("Found")
-		return true, nil // use extended shortening length
+		// fmt.Println("Found in gray-list")
+		return true // use extended shortening length
 	}
-	fmt.Println("Not found")
-	return false, nil
+	// fmt.Println("Domain not gray-listed")
+	return false
 }
 
 func num2char() []byte {
@@ -147,16 +174,31 @@ func invertCharNum() map[byte]uint {
 var charNum = invertCharNum()
 
 
+// Integer power: compute a**b
+// Donald Knuth, The Art of Computer Programming, Volume 2, Section 4.6.3
+func pow(a, b int) int {
+        pow := 1
+        for b > 0 {
+                if (b & 1) != 0 {
+                        pow *= a
+                }
+                b >>= 1
+                a *= a
+        }
+        return pow
+}
+
+
 func TestEncode(t *testing.T) {
-	const maxCharEncode = 10 // max characters for uint64 
-	if charEncode > maxCharEncode {
+	const maxCharEncode = 10 // max characters for uint64 representation
+	if charAddr> maxCharEncode {
 		t.Errorf("charEncode Exceeded max chars for uint64 representation")
 	}
 }
 
 func test() {
-	en1 := "ABCabs0123"
-	inv := invertEncode(en1)
-	encoded, _ := encodeAddr(inv, len(en1))
+	en := "ABCabs0123"
+	inv := invertEncode(en)
+	encoded, _ := encodeAddr(inv, len(en))
 	fmt.Println(encoded)
 }
