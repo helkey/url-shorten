@@ -17,55 +17,51 @@ var grayList = map[string]struct{}{"box.com":{}, "dropbox.com":{}, "googlemaps.c
 
 // Number of chars for addr field
 //   (may be increased in stages if service becomes popular and larger URL space is needed)
-const charAddr = 10 // number chars for encoded address
-const charRand = 2 // number additional random chars
-const charRandLong = 4 // additional random chars for higher security
-const nShard = 8 // number of key-val database shards
+const NcharA = 10 // number chars for encoded address
+const NcharR = 2 // number additional random chars
+const NcharRLong = 4 // additional random chars for higher security
+const Nshard = 8 // number of key-val database shards
 
 // Character encoding
-const nDig = 10 // number of digits
-const nLett = 26 // number of letters
-const nChar = 2 * nLett + nDig // number of characters used for encoding
+const Ndig = 10 // number of digits
+const Nlett = 26 // number of letters
+const Nchar = 2 * Nlett + Ndig // number of characters used for encoding
 
 // Round down max rand integer to avoid overflow when ORing with shard number
-var maxRand = ((pow(nChar, charRand)- 1) / nShard) * nShard
-var maxRandLong = ((pow(nChar, charRandLong)- 1) / nShard) * nShard
+var MaxRand = ((pow(Nchar, NcharR)- 1) / Nshard) * Nshard
+var MaxRandLong = ((pow(Nchar, NcharRLong)- 1) / Nshard) * Nshard
 
 
 func main() {
 	rand.Seed(time.Now().UnixNano()) // pick random seed
 	// test()
-	en := "ABCabs0123"
-	s, _ := EncodeURL("https://goog.com", invertEncode(en), 1)
-	fmt.Println(s)
-	s, _ = EncodeURL("https://dropbox.com", invertEncode(en), 1)
-	fmt.Println(s)
+	Decode("oxABCabs0123") // rand=1521
+	Decode("ZG8xABCabs0123") // rand=14699985
 }
 
 // Encode ULR string by with counter and database shard
 func EncodeURL(longURL string, address, iShard uint64) (string, error) {
-	encodeA, err := encodeAddr(address, charAddr)
+	encodeA, err := encodeAddr(address, NcharA)
 	if err != nil {
 		return "", err
 	}
-	if len(encodeA) != charAddr {
+	if len(encodeA) != NcharA {
 		return "", errors.New("Encoded base address wrong length")
 	}
 
 	// Check for gray-listed domains
 	lengthen := urlGrayListed(longURL)
-	charR := charRand
-
-	maxR := maxRand
+	charR := NcharR
+	maxR := MaxRand
 	if lengthen {
-		charR = charRandLong
-		maxR = maxRandLong
+		charR = NcharRLong
+		maxR = MaxRandLong
 	}
 
 	// String extension with rand number & shard ID
-	fmt.Println(uint64(rand.Intn(maxR)))
-	fmt.Println(nShard, ^(uint64(nShard)), ^(uint64(0)))
-	randExt := (uint64(rand.Intn(maxR)) & ^(uint64(nShard))) | iShard
+	// random extension; before conversion to char
+	randExt := (uint64(rand.Intn(maxR)) & ^(uint64(Nshard - 1))) | iShard
+	fmt.Println("randExt:", randExt)
 	encodeR, err := encodeAddr(randExt, charR)
 	if err != nil {
 		return "", err
@@ -80,7 +76,7 @@ func EncodeURL(longURL string, address, iShard uint64) (string, error) {
 func randString(strLen int) string {
 	sRand := ""
 	for i := 0; i < strLen; i++ {
-		sRand = sRand + string(numChar[rand.Intn(nChar)])
+		sRand = sRand + string(numChar[rand.Intn(Nchar)])
 	}
 	return sRand
 }
@@ -112,13 +108,13 @@ func urlGrayListed(longURL string) bool {
 }
 
 func num2char() []byte {
-	numChar := make([]byte, nChar)
-	for i:=0; i < nLett; i++ {
-		if i < nDig {
+	numChar := make([]byte, Nchar)
+	for i:=0; i < Nlett; i++ {
+		if i < Ndig {
 			numChar[i] = '0' + byte(i)
 		}
-		numChar[i + nDig] = 'a' + byte(i)
-		numChar[i + nDig + nLett] = 'A' + byte(i)
+		numChar[i + Ndig] = 'a' + byte(i)
+		numChar[i + Ndig + Nlett] = 'A' + byte(i)
 
 	}
 	return numChar
@@ -131,8 +127,8 @@ func encodeAddr(address uint64, nChars int) (string, error) {
 	// Convert 'address' to base numChar;
 	//   convert each digit to character representation
 	for i := 0; i < nChars; i++  {
-		charVal := address % nChar
-		address = address / nChar
+		charVal := address % Nchar
+		address = address / Nchar
 		// Construct 'encoded' string from right to left
 		encoded = string(numChar[charVal]) + encoded
 	}
@@ -156,7 +152,7 @@ func invertEncode(encoded string) uint64 {
 	fmt.Print("invertEncode ", encoded, ": " )
 	for _, char := range encoded {
 		// char := encoded[i]
-		addr = nChar * addr + uint64(charNum[byte(char)])
+		addr = Nchar * addr + uint64(charNum[byte(char)])
 		fmt.Print(charNum[byte(char)], ", ")
 	}
 	fmt.Println(";  ", addr, (uint64(1)<<63)/addr)
@@ -191,14 +187,29 @@ func pow(a, b int) int {
 
 func TestEncode(t *testing.T) {
 	const maxCharEncode = 10 // max characters for uint64 representation
-	if charAddr> maxCharEncode {
+	if NcharA> maxCharEncode {
 		t.Errorf("charEncode Exceeded max chars for uint64 representation")
 	}
 }
 
 func test() {
-	en := "ABCabs0123"
+	en, iShard := "ABCabs0123", uint64(1)
+	s, _ := EncodeURL("https://goog.com", invertEncode(en), iShard)
+	fmt.Println("Encoded:", s)
+	s, _ = EncodeURL("https://dropbox.com", invertEncode(en), iShard)
+	fmt.Println("Encoded (long):", s)
+	return
+	
+	en = "ABCabs0123"
 	inv := invertEncode(en)
 	encoded, _ := encodeAddr(inv, len(en))
 	fmt.Println(encoded)
+}
+
+func Decode(s string) {
+	fmt.Println(s)
+	encodeR, encodeA := s[:len(s)-NcharA], s[len(s)-NcharA:]
+	decodeR := invertEncode(encodeR)
+	iShard := decodeR & uint64(Nshard - 1)
+	fmt.Println(encodeR, encodeA, decodeR, iShard)
 }
