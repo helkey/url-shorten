@@ -1,48 +1,66 @@
 URL Shortener Design Doc
 =============
-URL shorteners are used to provide a short URL for accessing web pages that is easily typed and compactly stored.
+URL shorteners are used to access Internet resources using a short URL that is easily typed and compactly stored.
 Well-known examples include:
-* Bitly: the most popular and one of the oldest URL shorteners is used by Twitter for inserting links in tweets.
+
+  * Bitly: the most popular and one of the oldest URL shorteners is used by Twitter for inserting links in tweets.
   By 2016 they had shortened 26 billion URLs
-* Goo.gl: URL shortener from Google
-* TinyURL. A simple shortener that requires no sign-up and allows users to customize the keyword
+  * TinyURL. A simple shortener that requires no sign-up and allows users to customize the keyword
+  * Goo.gl (DISCONTINUED): former URL shortener
+
+## Key Features
+Comparing to the leading ULR shortening service, this design has:
+
+  * Higher security (12-character) links instead of 7 characters (Bitly standard links), 8 characters (TinyURL links),
+    and 10 characters (Bitly Facebook links).
+  * Additional (14-character) security for gray-listed sensitive domains (Box,Dropbox, Google Maps, ...)
+  * Scalability build into architecture: Kubernetes/Docker implementation for scaling large workloads,
+      encode database sharding information into shortened URLS.
+
+The cost of scanning the 7-bit Bit.ly address space was $37k in 2016 [Shmatikov]. 
+Cost of Internet transit dropped 36% per year from 2010-2015 [BandwidthPriceTrends]
+Using these two data points, we can project that by 2022 it will be possible to scan
+all of a 10-character URL space for around $10M, so even the highest security level
+that Bitly offers is not very good. This project uses 12 characters for standard
+level of security, projected to cost ~$600M to scan in 2022. Sensitive domains are
+shorted to 14 characters, where scanning the entire URL space is projected to cost ~$37B
+in 2022.
+
+![](ScanningCost.png "URL Scanning Cost")
 
 ## Security
+The use of URL shorteners can compromise security as reducing entropy of URLs used to specify websites is the purpose
+of the function [Shmatikov][Shmatikov-blog]. The address space of shortened URLs can be scanned to find URLs that reveal
+confidential customer information. Google has discontinued their URL shortening service, but provide clear warnings
+about risks of using the service that they no longer provide.
 
-The use of URL shorteners can compromise security as reducing entropy of URLs used to specify websites is the purpose of the function [Shmatikov][Shmatikov-blog].
+![](GoogleShortenerHighlighted.png "Google Security Warning")
+
 As a result, the URL shortened address space can be searched to find web sites containing
-* Cloud storage URLs for documents such as Box, Dropbox, GoogleDrive, and OneDrive documents.
-  This can a <b>huge</b> security issue. For instance OneDrive links not only let adversaries edit
-  the document, they can also use this link to gain access to other files [Shmatikov].
-* Map trip description URLs which may include the users identifiable home address linked to destinations.
-  By starting from an address and mapping all endpoints, one can create a map of who visited whom [Shmatikov].
 
-URL shorteners may use sequential codes for the shortened URLs, which further reduces security by
-allowing receipts of a shorted URL to access compromised related URLs.
+  * Cloud storage URLs for documents such as Box, Dropbox, GoogleDrive, and OneDrive documents
+      represent a <i>huge</i> security issue. For instance OneDrive links not only let adversaries edit
+      the document, they can also use this link to gain access to other files [Shmatikov].
+  * Map trip description URLs which may include the users identifiable home address linked to destinations.
+      By starting from an address and mapping all endpoints, one can create a map of who visited whom [Shmatikov].
 
 URL shorteners should provide shortened URLs that are long enough to make adversarial scanning unattractive,
   limit the scanning of large numbers of potential URLs (by CAPTCHAS and IP blocking),
   and avoid generation of sequential URL addresses.
   
-Users of URL shorteners should avoid using public URL shorteners for sensitive websites that could be compromised by adversaries,
-  as well as taking care when clicking on shortened links which may take them to malicious websites.
+Users of URL shorteners should avoid using public URL shorteners for sensitive websites that could be
+  compromised by adversaries, as well as taking care when clicking on shortened links which may take them to malicious websites.
 
-## Minimum Viable Product Features
-This implementation is designed as a minimum demonstration of a URL shortening application,
-with an emphasis on scalability.
-
-## Requirements
-The length of shortened URLs needs to be long enough to provide unique results for every URL shortening request.
-The initial design is to support a  traffic load of 200 shortened requests/second, over a period of 5 years.
-Seven character shortened URLs are sufficient to meet this initial traffic estimate.
-
-Security is an important issue, as the address space of shortened URLs can be scanned to find URLs that reveal
-confidential customer information. In addition, a ***x increase in the URL address space is allocated in order
-to make scanning of the shortened URL address space unattractive. This security measure increased the length
-of the shortened URL from 7 to 10 characters, the same length as Bit.ly is using to shorten Twitter embedded URLs.
+URL shorteners may use sequential codes for the shortened URLs, which further reduces security by
+allowing receipts of a shorted URL to access compromised related URLs.
 
 
 ## Design
+The length of shortened URLs needs to be long enough to provide unique results for every URL shortening request.
+The initial design is to support a  traffic load of 200 shortened requests/second, over a period of 5 years.
+Seven character shortened URLs are sufficient to meet this initial traffic estimate. For comparison, standard
+shortened URLs are 7 characters for standard Bitly links, 8 characters for TinyURL links.
+
 ### Architecture
 Counter-based, pseudo-random sequence for increased security
 
@@ -108,10 +126,6 @@ Each time system capacity is increased by increasing number of characters,
 there also will be an option to increase the number of database shards.
 
 ### Grey-Listing Sensitive URLs
-The cost of scanning the 7-bit Bit.ly address space was $37k in 2016, while the Bit.ly address space was about 37% used [Shmatikov].
-Even by over allocating the URL address space by 100x, this is inexpensive enough that URL shortening systems designers and users should assume that the full address space will be scanned looking for senstive information.
-
-### Grey-Listing Sensitive URLs
 Sensitive URLs like Dropbox URLs or Maps URLs should not be shortened like URLs suitable for public access.
 Here URLs from these sensitive domains are gray-listed for special processing, initially shortened to 12 characters
 (for an address space of 3x10^21) rather than the initial 7 character shortened addresses.
@@ -122,11 +136,21 @@ in other URL shorting services.
 ## Performance Testing Results
 
 
+## Future Features
+So far this Minimum Viable Product (MVP) is designed to demonstrate highly scalable link shortening.
+A variety of other features would be necessary to make this a commercially viable product.
+
+<b>Branded domains</b>: Support link shortening for user-customized domain names.
+
+<b>Monetization</b>: Bitly limits free use to 10k clicks/month, and only 500 clicks/month with a branded domain.  Their business plan is $950 per month.
+
 ## References
 
-[Shmatikov] Gone in Six Characters: Short URLs Considered Harmful for Cloud Services,
-            https://arxiv.org/pdf/1604.02734v1.pdf
+[Shmatikov]: [Gone in Six Characters: Short URLs Considered Harmful for Cloud Services](https://arxiv.org/pdf/1604.02734v1.pdf)
 
-[Shmatikov-blog] Gone In Six Characters: Short URLs Considered Harmful for Cloud Services,
-      https://freedom-to-tinker.com/2016/04/14/gone-in-six-characters-short-urls-considered-harmful-for-cloud-services/
+[Shmatikov-blog]: [(blog post) Gone In Six Characters: Short URLs Considered Harmful](https://freedom-to-tinker.com/2016/04/14/gone-in-six-characters-short-urls-considered-harmful-for-cloud-services/)
+
+[BandwidthPriceTrends]: [Internet transit pricing](http://drpeering.net/white-papers/Internet-Transit-Pricing-Historical-And-Projected.php)
+
+[FeatureComparison]: [Bit.ly vs TinyURL](https://www.slant.co/versus/2591/22693/~bitly_vs_tinyurl)
 
