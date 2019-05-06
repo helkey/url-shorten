@@ -68,21 +68,34 @@ Scalability needs to be accommodated, and the solution needs to support in-servi
 Fixed-length short URLs are implemented, although the length of URLs should be increased over time
 as the URL space filled up.
 
-
-#### Docker
-This application implemented  using Docker for its benefits of container management, including platform independence and ease of managing resources,
-
-#### Kubernetes
-Application implemented using Kubernetes for load balancing and resource orchestration.
-
-#### gRPC
-Used for network communication for its error handling.
-
 ### Encode Architecture
 
 
 ### Decode Architecture
 
+### Caching
+Caching is another performance enhancing feature which is important (not included in current algorithm implementation).
+A caching system (such as Redis or Memcache) will save responses to recent queries.
+When requesting a shortened URL, caching will intercept frequent requests to provide shortened URLs for the same long URL, which in
+turn minimizes wasted data storage due to multiple shortened versions of the same URL that would otherwise occur.
+Caching also reduces load on the URL database when many users are requesting access to the same shortened URL, by storing common
+resent requests in cache.
+
+#### Kubernetes
+Application implemented using Kubernetes for load balancing and resource orchestration. Kubernetes *PODS*
+are dynamically created and destroyed to meet evolving traffic loads. This dynamic allocation is helpful
+for providing needed resources for shortening and expanding URLs, but persistant storage is needed for
+the mapping of short to expanded URLs, and for allocating sections of shorted URL address space to each
+Kubernetes worker.
+
+Kubernetes uses control plane interfaces for communicating with persistant storage. These
+storage solutions are called Volume plugins, which abstract storage and provide portability.
+Persistant Volumes (PV) are storage units independant of any pod.
+Persistant Volume Claims (PVC) are requests for storage.
+
+#### Docker
+This application implemented using Docker for its benefits of container management, including platform independence and ease of managing resources,
+Docker is a common pairing with Kubernetes-based solutions.
 
 ### Database Sharding
 Database access to store the mapping from shortened URLs to URLs can be a
@@ -94,14 +107,6 @@ part of the software architecture. Database sharding, together with using Kubern
 to scale resources, should allow this URL shortener implementation to scale to high
 levels of use.
 
-### Caching
-Caching is another performance enhancing feature which is important (not included in current algorithm implementation).
-A caching system (such as Redis or Memcache) will save responses to recent queries.
-When requesting a shortened URL, caching will intercept frequent requests to provide shortened URLs for the same long URL, which in
-turn minimizes wasted data storage due to multiple shortened versions of the same URL that would otherwise occur.
-Caching also reduces load on the URL database when many users are requesting access to the same shortened URL, by storing common
-resent requests in cache.
-
 ### URL Encoding
 In this URL shortening architecture, shortened URLs will be constructed with characters a-z, A-Z, and 0-9, for a total of 62 different characters
 (the same character set used by Bit.ly for shortening).
@@ -112,6 +117,9 @@ The system goal of 200 URL shortening request/sec means over a 5 year period the
 
 Assuming an overcapacity ratio of 20x to make adversarial scanning of the URL space less attractive,
 requires ~3.2 trillion URLs available, which can be encoded using 7 characters (taken from the 62 character set).
+
+#### gRPC
+Used for network communication for its error handling.
 
 ### System Capacity Scalability
 The system design should be scalable to handle more success than budgeted.
@@ -148,7 +156,7 @@ A variety of other features would be necessary to make this a commercially viabl
 
 [Shmatikov]: [Gone in Six Characters: Short URLs Considered Harmful for Cloud Services](https://arxiv.org/pdf/1604.02734v1.pdf)
 
-[Shmatikov-blog]: [(blog post) Gone In Six Characters: Short URLs Considered Harmful](https://freedom-to-tinker.com/2016/04/14/gone-in-six-characters-short-urls-considered-harmful-for-cloud-services/)
+[Shmatikov-blog]: [(blog post) Gone In Six Characters: Short URLs Considered Harmful...](https://freedom-to-tinker.com/2016/04/14/gone-in-six-characters-short-urls-considered-harmful-for-cloud-services/)
 
 [BandwidthPriceTrends]: [Internet transit pricing](http://drpeering.net/white-papers/Internet-Transit-Pricing-Historical-And-Projected.php)
 
