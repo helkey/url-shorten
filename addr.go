@@ -13,13 +13,13 @@ import (
 )
 
 func main() {
-	// testAddr()
-	addrShard, err := getBaseAddrServer(UrlAddr)
+	testAddr()
+	/* addrShard, err := getBaseAddrServer(UrlAddr)
 	if err == nil {
 		fmt.Println(addrShard)
 	} else {
 		fmt.Println("err:", err)
-	}
+	} */
 }
 
 func init() {
@@ -31,13 +31,16 @@ type BaseShard struct {
 	shard uint32
 }
 
-var nAddrs int = 1e6                   // number of addresses offset from each base address
-var retryInterval time.Duration = 10   // interval to re-try address server (sec)
-var requestTimeout = retryInterval / 2 // set timeouts < retryInterval
+const nAddrBit = 24 // # bits for address offset
+
+const retryInterval time.Duration = 10   // interval to re-try address server (sec)
+const requestTimeout = retryInterval / 2 // set timeouts < retryInterval
 const UrlAddr = "http://127.0.0.1:8088/addr"
 
+var maxAddrOff int  = (1 << NoffBit) - 1 // num addresses offset from each base address
+
+
 func getAddr(urlAddr string, chAddr chan BaseShard) {
-	// const nAddrs = 1e6
 	const chDepth = 1 // channel queue depth to store lookahead base addresses
 	chBase := make(chan uint64, chDepth)
 	go getBaseAddr(urlAddr, chBase)
@@ -45,13 +48,13 @@ func getAddr(urlAddr string, chAddr chan BaseShard) {
 	baseMask := ^shardMask
 	// fmt.Printf("baseMask:%b  shardMask:%b", baseMask, shardMask)
 	for {
-		// Random array of 'nAddrs' addresses offset from
+		// Random array of 'maxAddrOff' addresses offset from
 		//    each base address from server
 		baseAddrShard := <-chBase // get base address from server
 		baseAddr := baseAddrShard & baseMask
 		baseShard := new(BaseShard)
 		baseShard.shard = uint32(baseAddrShard & shardMask)
-		addrs := rand.Perm(nAddrs) // select addr in random order
+		addrs := rand.Perm(maxAddrOff + 1) // select addr offsets in random order
 		for _, addr := range addrs {
 			baseShard.addr = baseAddr + uint64(addr)
 			chAddr <- *baseShard
@@ -60,7 +63,7 @@ func getAddr(urlAddr string, chAddr chan BaseShard) {
 }
 
 // Request/retry base address, database shard.
-//   Store using buffered go channel as queue
+//   Store using buffered go channel as queue.
 func getBaseAddr(urlAddr string, chBase chan uint64) {
 	var baseAddrShard uint64
 	var err error
@@ -104,6 +107,7 @@ func getBaseAddrServer(urlAddr string) (uint64, error) {
 		return 0, err
 	}
 	fmt.Println("body:", body, string(body[0]))
+	// https://stackoverflow.com/questions/11184336/how-to-convert-from-byte-to-int-in-go-programming
 	// addrShard := binary.BigEndian.Uint64(body)
 	addrShard := uint64(1024)
 	return addrShard, nil
@@ -112,11 +116,11 @@ func getBaseAddrServer(urlAddr string) (uint64, error) {
 var requestAddr = getBaseAddrServer
 
 // For automated testing. Overrides defaults, mocks address server
-func Test() chan BaseShard {
+func MockServer() chan BaseShard {
 	// Override operational defaults
-	nAddrs = 10 // number of address per base address
+	maxAddrOff = 9 // max value of address offset
 	var base uint64 = 0
-	var baseIncr uint64 = 1024
+	const baseIncr uint64 = 1024
 	rand.Seed(0) // const seed for repeatible test results
 	requestAddr = func(url string) (uint64, error) {
 		base += baseIncr
@@ -128,23 +132,11 @@ func Test() chan BaseShard {
 	return chAddr
 }
 
-// For automated testing. Overrides defaults, mocks address server
-func Testserver() chan BaseShard {
-	// Override operational defaults
-	nAddrs = 10 // number of address per base address
-	rand.Seed(0) // const seed for repeatible test results
-
-	chAddr := make(chan BaseShard)
-	go getAddr(UrlAddr, chAddr) // UrlAddr defined in RequestAddr
-	return chAddr
-}
-
-// Used for diagnostics when getting failures using
-//  $ go test addr_test.go
+// Used for diagnostics when getting failures with 'go test'
 func testAddr() {
-	// chAddr := Test()
-	chAddr := Testserver()
-	const sleepMs = 10 // avoid race condition between channels
+	chAddr := MockServer()
+	// Sleep time to avoid race conditions between channels
+	const sleepMs = 10
 	const nIter = 30
 	for i := 0; i < nIter; i++ {
 		addrShard := <-chAddr

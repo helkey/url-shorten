@@ -14,7 +14,7 @@ var result = []uint64{1032, 1026, 1027, 1024, 1029, 1031, 1025, 1030, 1033, 1028
 	3079, 3078, 3081, 3073, 3072, 3075, 3076, 3080, 3077, 3074}
 
 func TestAddr(t *testing.T) {
-	chAddr := Test()
+	chAddr := MockServer()
 	const sleepMs = 10 // avoid race condition between channels
 	const nIter = 30
 	for i := 0; i < nIter; i++ {
