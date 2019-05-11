@@ -9,22 +9,17 @@ import (
 	"io/ioutil"
 	"math/rand"
 	"net/http"
+	"strconv"
 	"time"
 )
-
-func main() {
-	testAddr()
-	/* addrShard, err := getBaseAddrServer(UrlAddr)
-	if err == nil {
-		fmt.Println(addrShard)
-	} else {
-		fmt.Println("err:", err)
-	} */
-}
 
 func init() {
 	rand.Seed(time.Now().UnixNano()) // initialize random seed
 }
+
+/* func main() {
+	testAddr()
+} */
 
 type BaseShard struct {
 	addr  uint64
@@ -35,15 +30,13 @@ const nAddrBit = 24 // # bits for address offset
 
 const retryInterval time.Duration = 10   // interval to re-try address server (sec)
 const requestTimeout = retryInterval / 2 // set timeouts < retryInterval
-const UrlAddr = "http://127.0.0.1:8088/addr"
 
-var maxAddrOff int  = (1 << NoffBit) - 1 // num addresses offset from each base address
+var maxAddrOff int = (1 << NoffBit) - 1 // max offset from each base address
 
-
-func getAddr(urlAddr string, chAddr chan BaseShard) {
+func getAddr(urlAddrServer string, chAddr chan BaseShard) {
 	const chDepth = 1 // channel queue depth to store lookahead base addresses
 	chBase := make(chan uint64, chDepth)
-	go getBaseAddr(urlAddr, chBase)
+	go getBaseAddr(urlAddrServer, chBase)
 	shardMask := uint64(Nshard) - 1
 	baseMask := ^shardMask
 	// fmt.Printf("baseMask:%b  shardMask:%b", baseMask, shardMask)
@@ -64,17 +57,17 @@ func getAddr(urlAddr string, chAddr chan BaseShard) {
 
 // Request/retry base address, database shard.
 //   Store using buffered go channel as queue.
-func getBaseAddr(urlAddr string, chBase chan uint64) {
+func getBaseAddr(urlAddrServer string, chBase chan uint64) {
 	var baseAddrShard uint64
 	var err error
 	for {
 		// Request base address range from server
-		baseAddrShard, err = requestAddr(urlAddr)
+		baseAddrShard, err = requestAddr(urlAddrServer)
 		if err != nil {
 			// Retry address server until responds
 			ticker := time.NewTicker(retryInterval * time.Second)
 			for _ = range ticker.C {
-				baseAddrShard, err = requestAddr(urlAddr)
+				baseAddrShard, err = requestAddr(urlAddrServer)
 				if err == nil {
 					break
 				}
@@ -91,12 +84,13 @@ func getBaseAddr(urlAddr string, chBase chan uint64) {
 // Single request for base address, database shard from remote address server
 //   Note: specify timeout (don't use default http request client)
 //   TODO: re-write this with gRPC
-func getBaseAddrServer(urlAddr string) (uint64, error) {
+func getBaseAddrServer(urlAddrServer string) (uint64, error) {
 	var netClient = &http.Client{
 		Timeout: time.Second * requestTimeout,
 	}
-	resp, err := netClient.Get(urlAddr)
+	resp, err := netClient.Get(urlAddrServer)
 	if err != nil {
+		// Write this to log file
 		fmt.Println("Failed netClient.Get")
 		return 0, err
 	}
@@ -106,35 +100,32 @@ func getBaseAddrServer(urlAddr string) (uint64, error) {
 		fmt.Println("Failed ioutil.ReadAll")
 		return 0, err
 	}
-	fmt.Println("body:", body, string(body[0]))
-	// https://stackoverflow.com/questions/11184336/how-to-convert-from-byte-to-int-in-go-programming
-	// addrShard := binary.BigEndian.Uint64(body)
-	addrShard := uint64(1024)
-	return addrShard, nil
+	addrShard, err := strconv.Atoi(string(body))
+	fmt.Println("body:", body, "addrShard", addrShard, err)
+	return uint64(addrShard), err
 }
 
 var requestAddr = getBaseAddrServer
 
 // For automated testing. Overrides defaults, mocks address server
-func MockServer() chan BaseShard {
+func MockServer(baseAddr uint64) chan BaseShard {
 	// Override operational defaults
 	maxAddrOff = 9 // max value of address offset
-	var base uint64 = 0
+	// var baseAddr uint64 = 0
 	const baseIncr uint64 = 1024
 	rand.Seed(0) // const seed for repeatible test results
 	requestAddr = func(url string) (uint64, error) {
-		base += baseIncr
-		return base, nil
+		baseAddr += baseIncr
+		return baseAddr, nil
 	}
-
 	chAddr := make(chan BaseShard)
-	go getAddr(UrlAddr, chAddr)
+	go getAddr("", chAddr)
 	return chAddr
 }
 
 // Used for diagnostics when getting failures with 'go test'
 func testAddr() {
-	chAddr := MockServer()
+	chAddr := MockServer(0)
 	// Sleep time to avoid race conditions between channels
 	const sleepMs = 10
 	const nIter = 30
