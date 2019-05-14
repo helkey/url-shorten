@@ -38,9 +38,6 @@ func getAddr(urlAddrServer string, chAddr chan AddrShard) {
 	const chDepth = 1 // channel queue depth to store lookahead base addresses
 	chBase := make(chan AddrShard, chDepth)
 	go getBaseAddr(urlAddrServer, chBase)
-
-	
-	// fmt.Printf("baseMask:%b  shardMask:%b", baseMask, shardMask)
 	for {
 		// Random array of 'maxAddrOff' addresses offset from
 		//    each base address from server
@@ -85,7 +82,7 @@ var baseMask = ^shardMask
 // Convert addrShard from uint64 to struct{}
 func addrShardToStruct(baseShard uint64) (AddrShard) {
 	addrShard := new(AddrShard)
-	addrShard.addr = baseShard & baseMask
+	addrShard.addr = (baseShard & baseMask) >> NshardBits
 	addrShard.shard = uint32(baseShard & shardMask)
 	return *addrShard
 }

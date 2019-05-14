@@ -61,6 +61,18 @@ The initial design is to support a  traffic load of 200 shortened requests/secon
 Seven character shortened URLs are sufficient to meet this initial traffic estimate. For comparison, standard
 shortened URLs are 7 characters for standard Bitly links, 8 characters for TinyURL links.
 
+### URL Encoding
+In this URL shortening architecture, shortened URLs will be constructed with characters a-z, A-Z, and 0-9, for a total of 62 different characters
+(the same character set used by Bit.ly for shortening).
+
+The system goal of 200 URL shortening request/sec means over a 5 year period the expected number of shortening requests is:
+
+    200 * 60sec * 60min * 24hr * 365day * 5year ~ 32 billion requests
+
+Assuming an overcapacity ratio of 20x to make adversarial scanning of the URL space less attractive,
+requires ~3.2 trillion URLs available, which can be encoded using 7 characters (taken from the 62 character set).
+
+
 ### Architecture
 Counter-based, pseudo-random sequence for increased security
 
@@ -81,7 +93,8 @@ turn minimizes wasted data storage due to multiple shortened versions of the sam
 Caching also reduces load on the URL database when many users are requesting access to the same shortened URL, by storing common
 resent requests in cache.
 
-#### Kubernetes
+
+### Kubernetes
 Application implemented using Kubernetes for load balancing and resource orchestration. Kubernetes *PODS*
 are dynamically created and destroyed to meet evolving traffic loads. This dynamic allocation is helpful
 for providing needed resources for shortening and expanding URLs, but persistant storage is needed for
@@ -93,11 +106,18 @@ storage solutions are called Volume plugins, which abstract storage and provide 
 Persistant Volumes (PV) are storage units independant of any pod.
 Persistant Volume Claims (PVC) are requests for storage.
 
-#### Docker
+
+### Docker
 This application implemented using Docker for its benefits of container management, including platform independence and ease of managing resources,
 Docker is a common pairing with Kubernetes-based solutions.
 
-### Database Sharding
+
+### High-Availability Database
+Address storage
+StatefulSets
+
+
+### Key-Value Database Sharding
 Database access to store the mapping from shortened URLs to URLs can be a
 bottleneck for performance, limiting the scalability of popular web-based application.
 
@@ -107,19 +127,6 @@ part of the software architecture. Database sharding, together with using Kubern
 to scale resources, should allow this URL shortener implementation to scale to high
 levels of use.
 
-### URL Encoding
-In this URL shortening architecture, shortened URLs will be constructed with characters a-z, A-Z, and 0-9, for a total of 62 different characters
-(the same character set used by Bit.ly for shortening).
-
-The system goal of 200 URL shortening request/sec means over a 5 year period the expected number of shortening requests is:
-
-    200 * 60sec * 60min * 24hr * 365day * 5year ~ 32 billion requests
-
-Assuming an overcapacity ratio of 20x to make adversarial scanning of the URL space less attractive,
-requires ~3.2 trillion URLs available, which can be encoded using 7 characters (taken from the 62 character set).
-
-#### gRPC
-Used for network communication for its error handling.
 
 ### System Capacity Scalability
 The system design should be scalable to handle more success than budgeted.
@@ -133,6 +140,7 @@ the URL decoding software will chose which generation of URL encoding schema to 
 Each time system capacity is increased by increasing number of characters,
 there also will be an option to increase the number of database shards.
 
+
 ### Grey-Listing Sensitive URLs
 Sensitive URLs like Dropbox URLs or Maps URLs should not be shortened like URLs suitable for public access.
 Here URLs from these sensitive domains are gray-listed for special processing, initially shortened to 12 characters
@@ -140,6 +148,8 @@ Here URLs from these sensitive domains are gray-listed for special processing, i
 Scanning a 12-character address space should increase the full scanning cost from $37k to $34B (in 2016 prices),
 which would seem to be sufficiently high to make URL scanning unattractive compared to exploiting vulnerabilities
 in other URL shorting services.
+
+##
 
 ## Performance Testing Results
 
