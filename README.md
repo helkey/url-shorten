@@ -1,32 +1,23 @@
 URL Shortener Design Doc
 =============
 URL shorteners are used to access Internet resources using a short URL that is easily typed and compactly stored.
-Well-known examples include:
+Well-known shorterner examples include:
 
   * Bitly: the most popular and one of the oldest URL shorteners is used by Twitter for inserting links in tweets.
   By 2016 they had shortened 26 billion URLs
   * TinyURL. A simple shortener that requires no sign-up and allows users to customize the keyword
-  * Goo.gl (DISCONTINUED): former URL shortener
+  * Goo.gl (DISCONTINUED): URL shortener written and retired by Google
+
 
 ## Key Features
 Comparing to the leading ULR shortening service, this design has:
 
-  * Higher security (12-character) links instead of 7 characters (Bitly standard links), 8 characters (TinyURL links),
+  * Higher security (12-character) standard links instead of 7 characters (Bitly standard links), 8 characters (TinyURL links),
     and 10 characters (Bitly Facebook links).
   * Additional (14-character) security for gray-listed sensitive domains (Box,Dropbox, Google Maps, ...)
-  * Scalability build into architecture: Kubernetes/Docker implementation for scaling large workloads,
-      encode database sharding information into shortened URLS.
+  * Scalability designed into architecture: Kubernetes/Docker implementation for orchestration of large workloads scaling
+  * Database sharding information encoded into shortened URLS.
 
-The cost of scanning the 7-bit Bit.ly address space was $37k in 2016 [Shmatikov]. 
-Cost of Internet transit dropped 36% per year from 2010-2015 [BandwidthPriceTrends]
-Using these two data points, we can project that by 2022 it will be possible to scan
-all of a 10-character URL space for around $10M, so even the highest security level
-that Bitly offers is not very good. This project uses 12 characters for standard
-level of security, projected to cost ~$600M to scan in 2022. Sensitive domains are
-shorted to 14 characters, where scanning the entire URL space is projected to cost ~$37B
-in 2022.
-
-![](ScanningCost.png "URL Scanning Cost")
 
 ## Security
 The use of URL shorteners can compromise security as reducing entropy of URLs used to specify websites is the purpose
@@ -48,11 +39,22 @@ URL shorteners should provide shortened URLs that are long enough to make advers
   limit the scanning of large numbers of potential URLs (by CAPTCHAS and IP blocking),
   and avoid generation of sequential URL addresses.
   
-Users of URL shorteners should avoid using public URL shorteners for sensitive websites that could be
-  compromised by adversaries, as well as taking care when clicking on shortened links which may take them to malicious websites.
+The cost of adversarially scanning the 7-bit standard Bit.ly address space was $37k in 2016 [Shmatikov]. 
+The cost of Internet transit dropped 36% per year from 2010-2015 [BandwidthPriceTrends].
+Using these two data points, we can project that by 2022 it will be possible to scan
+all of a 10-character URL space for around $10M, so even the highest security level
+that Bitly offers is not good enough for securing a large number of sensitive URLs.
 
-URL shorteners may use sequential codes for the shortened URLs, which further reduces security by
-allowing receipts of a shorted URL to access compromised related URLs.
+![](ScanningCost.png "URL Scanning Cost")
+
+In contrast, this URL shortening project uses 12 characters for standard
+level of security, projected to cost ~$600M to scan in 2022.
+Sensitive domains are shorted to 14 characters, where scanning the entire URL space is projected to cost ~$37B in 2022.
+
+In addition, URL shorteners may use sequential codes for the shortened URLs, which further reduces security by
+allowing receipts of a shorted URL to access compromised related URLs. Bitly appears to use a 6 character
+URL shortening space for addresses shortened at a similar time. If someone finds a sensitive shortened Bitly URL,
+they can scan all of the other URLs shorted around the same time for a few hundred dollars [Shmatikov].
 
 
 ## Design
@@ -116,6 +118,14 @@ Docker is a common pairing with Kubernetes-based solutions.
 Address storage
 StatefulSets
 
+The key-value database needs to be high reliability, but cost is also a critical issue.
+The volume of writes and reads is high, and the service has free competitors which puts
+some limit on customer value.
+
+The key-value database is implemented in a distributed open-source key-value store *etcd*,
+which is written in Go, and uses the Raft consensus algorithm. Other distributed key-value
+stores include Aerospike, ArandoDB, BoltDB, CouchDB, Google Cloud Datastore, rediisHbase, and Redis.
+https://www.g2.com/categories/key-value-stores
 
 ### Key-Value Database Sharding
 Database access to store the mapping from shortened URLs to URLs can be a
@@ -149,9 +159,13 @@ Scanning a 12-character address space should increase the full scanning cost fro
 which would seem to be sufficiently high to make URL scanning unattractive compared to exploiting vulnerabilities
 in other URL shorting services.
 
-##
 
-## Performance Testing Results
+
+
+## Implementation
+
+## Performance Results
+
 
 
 ## Future Features
@@ -160,7 +174,11 @@ A variety of other features would be necessary to make this a commercially viabl
 
 <b>Branded domains</b>: Support link shortening for user-customized domain names.
 
-<b>Monetization</b>: Bitly limits free use to 10k clicks/month, and only 500 clicks/month with a branded domain.  Their business plan is $950 per month.
+<b>Monetization</b>: As and example, Bitly limits free user to 10k clicks/month, and only 500 clicks/month with a branded domain.
+  Their business plan is available for $950 per month.
+  Bitly is eying revenue of $100M/year, suggesting a market demand of around 100k professional licenses [BitlyRevenue]
+
+
 
 ## References
 
@@ -172,3 +190,4 @@ A variety of other features would be necessary to make this a commercially viabl
 
 [FeatureComparison]: [Bit.ly vs TinyURL](https://www.slant.co/versus/2591/22693/~bitly_vs_tinyurl)
 
+[BitlyRevenue] https://www.cnbc.com/2016/05/26/web-link-shortening-company-bitly-eyeing-100m-revenues.html]
