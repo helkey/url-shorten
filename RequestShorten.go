@@ -1,5 +1,5 @@
 // RequestShorten
-// go run RequestShorten.go addr.go encode.go // RequestAddr.go
+// go run RequestShorten.go addr.go dbAddr.go encode.go // RequestAddr.go
 
 package main
 
@@ -11,12 +11,15 @@ import (
 
 const UrlShorten = "localhost:8086"    // 12.0.0.1 (IPv6 ::1)
 const UrlAddrServer = "127.0.0.1:8088" // (IPv6 ::1)
-var chAddr = make(chan BaseShard)
+const passwd = "temp"
+var chAddr = make(chan AddrShard)
+var dbS DBS
 
 func main() {
+	dbS.shard = 1 << 31 // initialize to unused value
 	TestShorten()
 	return
-	
+
 	// Set up channel to supply channel addresses
 	go getAddr(UrlAddrServer, chAddr)
 
@@ -28,32 +31,38 @@ func shortenHandler(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Path
 	fmt.Fprintf(w, "shorten", path)
 	return
-	if (r.Method != "GET") {
+	if r.Method != "GET" {
 		http.Error(w, "405 method not allowed.", http.StatusMethodNotAllowed)
 		return
 	}
-	const header = "?source=&url="
+	const header = "?source=&url=" // header before long URL argument
 	if (len(path) <= len(header)) || (path[:len(header)] == header) {
+		// Argument too short to contain URL
 		http.Error(w, "404 not found.", http.StatusNotFound)
 		return
 	}
+	fullURL := path[:len(header)]
 	addrShard := <-chAddr
 	addr := addrShard.addr
-	fullURL := path[:len(header)]
-	shortURL, randExt, err := EncodeURL(fullURL, addr, addrShard.shard) // encode.go
-	randExt = 0
+	shard := addrShard.shard
+	shortURL, randExt, err := EncodeURL(fullURL, addr, shard) // encode.go
 	if err != nil {
-		fmt.Fprintf(w, "err shortening URL")
+		log.Fatal("shortenHandler: error shortinging URL", fullURL)
+		fmt.Fprintf(w, "error shortening URL")
 	} else {
+		err := dbS.SaveAddr(shortURL, addr, randExt, passwd, shard)
+		if err != nil {
+			fmt.Fprintf(w, "error storing shortened URL")
+		}
 		fmt.Fprintf(w, shortURL, randExt)
-		// **PUT IN DBase SHARD** addr:?/fullURL; addr:?/randExt
 	}
+	return
 }
 
 // go run RequestShorten.go addr.go encode.go // RequestAddr.go
 func TestShorten() error {
 	urls := []string{"Shorten This", "and THIS"}
-	_, decodeA, _ := DecodeURL("8765431Kn")
+	decodeA, _, _ := DecodeURL("8765431Kn")
 	chAddrM := MockServer(decodeA)
 	for _, url := range urls {
 		addrShard := <-chAddrM
@@ -65,7 +74,7 @@ func TestShorten() error {
 		randURL, baseURL := shortURL[:NcharR], shortURL[NcharR:]
 		fmt.Printf("'%s'  %s  %s  %s \n", url, shortURL, randURL, baseURL)
 		dR, dA, iShard := DecodeURL(shortURL)
-		fmt.Printf("rand:%b  base:%b  shard:%d \n", dR, dA, iShard) 
+		fmt.Printf("rand:%b  base:%b  shard:%d \n", dR, dA, iShard)
 	}
 	return nil
 }
