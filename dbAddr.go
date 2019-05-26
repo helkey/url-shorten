@@ -23,6 +23,10 @@ const (
 )
 
 // Database object pointer, shard
+// type DB struct {
+//	*sql.DB
+// }
+
 type DBS struct {
 	db     *sql.DB
 	shard  uint32
@@ -60,6 +64,7 @@ func (dbS *DBS) OpenDB(shard uint32, passwd string) error {
 }
 
 func CreateTables(passwd string) error {
+	const name = "url"
 	if passwd == "" {
 		if len(os.Args) <= 1 {
 			e := "CreateTables: need Database password"
@@ -73,12 +78,13 @@ func CreateTables(passwd string) error {
 		fmt.Println("1:", err)
 		return err
 	}
-	err = CreateTable(dbS.db)
+
+	err = dbS.CreateTable(name)
 	// err = DropTable(dbS.db)
 	return err
 }
 
-func DropTable(db *sql.DB) (err error) {
+func (dbS DBS) DropTable(name string) (err error) {
 	// Recover from db.Exec() panic
 	defer func() {
 		if r := recover(); r != nil {
@@ -88,22 +94,15 @@ func DropTable(db *sql.DB) (err error) {
 	}()
 
 	sqlTbl := `DROP TABLE url;`
-	_, err = db.Exec(sqlTbl)
+	_, err = dbS.db.Exec(sqlTbl)
 	if err != nil {
-		fmt.Println("3:", err)
-	}
-
-	sqlTbl = `DROP TABLE randext;`
-	_, err = db.Exec(sqlTbl)
-	if err != nil {
-		fmt.Println("4:", err)
-		return err
+		fmt.Println("DropTable:", err)
 	}
 	return err
 }
 
 // Create new DB shard / table
-func CreateTable(db *sql.DB) (err error) {
+func (dbS DBS) CreateTable(name string) (err error) {
 	// Recover from db.Exec() panic
 	defer func() {
 		if r := recover(); r != nil {
@@ -112,38 +111,12 @@ func CreateTable(db *sql.DB) (err error) {
 		}
 	}()
 
-	sqlTbl := `CREATE TABLE url (addr INTEGER PRIMARY KEY, fullurl TEXT);`
-	_, err = db.Exec(sqlTbl)
+	sqlTbl := fmt.Sprintf(`CREATE TABLE %s (addr INTEGER PRIMARY KEY, randext INT, fullurl TEXT);`, name)
+	_, err = dbS.db.Exec(sqlTbl)
 	if err != nil {
 		fmt.Println("3:", err)
-		return err
 	}
-	sqlTbl = `CREATE TABLE randext (addr INTEGER PRIMARY KEY, rand INT);`
-	_, err = db.Exec(sqlTbl)
-	if err != nil {
-		fmt.Println("4:", err)
-	}
-	return err
-}
-
-func NewDBconn(shard uint32) (DBS, error) {
-	dbS := DBS{nil, 9999, ""}
-	if len(os.Args) <= 1 {
-		return dbS, errors.New("NewDBconn error: password not set")
-	}
-	passwd := os.Args[1]
-	err := dbS.OpenDB(shard, passwd)
-	return dbS, err
-}
-
-func TestSaveurl() error {
-	const fullUrl, addr, randExt, shard = "http://Full.Url", uint64(0xaaaa), uint32(0xcccc), uint32(3)
-	dbS, err := NewDBconn(shard)
-	if err != nil {
-		return err
-	}
-	dbS.SaveUrl(fullUrl, addr, randExt, shard, dbS.passwd)
-	return nil
+	return
 }
 
 // Save URL mapping to DB
@@ -160,18 +133,74 @@ func (dbS DBS) SaveUrl(fullUrl string, addr uint64, randExt uint32, shard uint32
 	if err != nil {
 		return errors.New("SaveUrl: database connection failed")
 	}
-	sqlIns := `INSERT INTO url (addr, fullUrl) VALUES ($1, $2);`
-	fmt.Println(sqlIns, addr, fullUrl)
-	// _, err = dbS.db.Exec(sqlIns, addr, fullUrl)
+	sqlIns := `INSERT INTO url (addr, randext, fullurl) VALUES ($1, $2, $3);`
+	fmt.Println(sqlIns, addr, randExt, fullUrl)
+	_, err = dbS.db.Exec(sqlIns, addr, randExt, fullUrl)
 	if err != nil {
 		return errors.New("SaveUrl: error saving to 'url' DB")
 	}
-	sqlIns = `INSERT INTO randext (addr, fullUrl) VALUES ($1, $2);`
-	// _, err = dbS.db.Exec(sqlIns, addr, fullUrl)
-	if err != nil {
-		return errors.New("SaveUrl: error saving  to 'randext' DB table")
-	}
-	return nil
+	return
 }
 
 //
+func (dbS DBS) ReadUrl(addr uint64, shard uint32, passwd string) (fullUrl string, randExt int, err error) {
+	// Recover from db.Exec() panic
+	defer func() {
+		if r := recover(); r != nil {
+			e := "ReadUlr: can't read URL from database"
+			err = errors.New(e)
+		}
+	}()
+
+	err = dbS.OpenDB(shard, passwd)
+	if err != nil {
+		err = errors.New("ReadUrl: database connection failed")
+		return
+	}
+
+	sqlSel := fmt.Sprintf(`SELECT randext, fullurl FROM url WHERE addr = %d;`, addr)
+	row := dbS.db.QueryRow(sqlSel)
+	err = row.Scan(&randExt, &fullUrl)
+	fmt.Println(randExt, fullUrl)
+	if err != nil {
+		err = errors.New("ReadUrl: URL not found")
+	}
+	return
+}
+
+func NewDBconn(shard uint32) (DBS, error) {
+	const defaultShard, defaultPass = 9999, ""
+	dbS := DBS{nil, defaultShard, defaultPass}
+	if len(os.Args) <= 1 {
+		return dbS, errors.New("NewDBconn error: password not set")
+	}
+	passwd := os.Args[1]
+	err := dbS.OpenDB(shard, passwd)
+	return dbS, err
+}
+
+func TestSaveurl() error {
+	const name = "url"
+	const fullUrl = "http://Full.Url"
+	const addr, randExt = uint64(0xaaaa), uint32(0xcccc)
+	const shard = 3
+	dbS, err := NewDBconn(shard)
+	if err != nil {
+		return err
+	}
+
+	dbS.DropTable(name)
+	dbS.CreateTable(name)
+	if err != nil {
+		return err
+	}
+
+	err = dbS.SaveUrl(fullUrl, addr, randExt, shard, dbS.passwd)
+	if err != nil {
+		return err
+	}
+
+	fullUrlR, randExtR, err := dbS.ReadUrl(addr, shard, dbS.passwd)
+	fmt.Println(fullUrlR, randExtR, err)
+	return err
+}

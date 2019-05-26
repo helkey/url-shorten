@@ -80,7 +80,7 @@ func EncodeURL(fullURL string, baseAddr uint64, iShard uint32) (string, uint32, 
 	return shortURL, uint32(randExt), nil
 }
 
-func DecodeURL(shortURL string) (uint32, uint64, uint32) {
+func DecodeURL(shortURL string) (uint64, uint32, uint32) {
 	// fmt.Println("shortURL:", shortURL)
 	lenExt := len(shortURL) - NcharA
 	// split shortURL into extension and base address
@@ -90,7 +90,7 @@ func DecodeURL(shortURL string) (uint32, uint64, uint32) {
 	iShard := uint32(decodeRS & uint64(Nshard-1)) // database shard
 	decodeA := decode(encodeA)
 	// fmt.Println(encodeR, encodeA, decodeR, iShard)
-	return decodeR, decodeA, iShard
+	return decodeA, decodeR, iShard
 }
 
 // Generate rand string of encoded characters of specified length
