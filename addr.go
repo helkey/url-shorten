@@ -20,19 +20,21 @@ func init() {
 
 /* func main() {
 	testAddr()
-} */
+}*/
 
 type AddrShard struct {
 	addr  uint64
 	shard uint32
 }
 
-const nAddrBit = 24 // # bits for address offset
+// Address space
+const NaddrBit = 24 // # bits for address offset
 
 const retryInterval time.Duration = 10   // interval to re-try address server (sec)
 const requestTimeout = retryInterval / 2 // set timeouts < retryInterval
 
-var maxAddrOff int = (1 << NoffBit) - 1 // max offset from each base address
+// var maxAddrOff int = (1 << NoffBit) - 1 // max offset from each base address
+var maxAddrOff int = (1 << NaddrBit) - 1 // max offset from each base address
 
 func getAddr(urlAddrServer string, chAddr chan AddrShard) {
 	const chDepth = 1 // channel queue depth to store lookahead base addresses
@@ -80,7 +82,7 @@ var shardMask = uint64(Nshard) - 1
 var baseMask = ^shardMask
 
 // Convert addrShard from uint64 to struct{}
-func addrShardToStruct(baseShard uint64) (AddrShard) {
+func addrShardToStruct(baseShard uint64) AddrShard {
 	addrShard := new(AddrShard)
 	addrShard.addr = (baseShard & baseMask) >> NshardBits
 	addrShard.shard = uint32(baseShard & shardMask)
@@ -133,7 +135,6 @@ func MockServer(baseAddr uint64) chan AddrShard {
 	return chAddr
 }
 
-	
 // Used for diagnostics when getting failures with 'go test'
 func testAddr() {
 	chAddr := MockServer(0)

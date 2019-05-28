@@ -1,5 +1,7 @@
 // RequestShorten
-// go run RequestShorten.go addr.go dbAddr.go encode.go // RequestAddr.go
+// go run RequestShorten.go addr.go dbAddr.go encode.go
+// "localhost:8086/create" (working WSL)
+// "localhost:8086/create/?source=&url=..."
 
 package main
 
@@ -12,18 +14,21 @@ import (
 const UrlShorten = "localhost:8086"    // 12.0.0.1 (IPv6 ::1)
 const UrlAddrServer = "127.0.0.1:8088" // (IPv6 ::1)
 const passwd = "temp"
+
 var chAddr = make(chan AddrShard)
 var dbS DBS
 
 func main() {
 	dbS.shard = 1 << 31 // initialize to unused value
-	TestShorten()
-	return
+	// TestShorten()
+	// return
 
 	// Set up channel to supply channel addresses
+	// fmt.Println("RequestShorten: go chan 'getAddr'")
 	go getAddr(UrlAddrServer, chAddr)
 
-	http.HandleFunc("/create", shortenHandler)
+	fmt.Println("RequestShorten/create")
+	http.HandleFunc("/create/", shortenHandler)
 	log.Fatal(http.ListenAndServe(UrlShorten, nil))
 }
 
@@ -50,7 +55,7 @@ func shortenHandler(w http.ResponseWriter, r *http.Request) {
 		log.Fatal("shortenHandler: error shortinging URL", fullURL)
 		fmt.Fprintf(w, "error shortening URL")
 	} else {
-		err := dbS.SaveAddr(shortURL, addr, randExt, passwd, shard)
+		err := dbS.SaveUrl(fullURL, addr, randExt, shard, passwd)
 		if err != nil {
 			fmt.Fprintf(w, "error storing shortened URL")
 		}

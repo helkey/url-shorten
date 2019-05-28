@@ -33,13 +33,13 @@ type DBS struct {
 	passwd string
 }
 
-func main() {
+/* func main() {
 	err := TestSaveurl()
 	if err != nil {
 		fmt.Println("main:", err)
 	}
 	// CreateTables(passwd)
-}
+} */
 
 //
 func (dbS *DBS) OpenDB(shard uint32, passwd string) error {

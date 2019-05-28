@@ -8,7 +8,6 @@ import (
 	"math/rand"
 	"net"
 	"net/url"
-	// "strconv"
 	"time"
 )
 
@@ -26,9 +25,6 @@ const Nshard = 8     // (1 << NshardBits) number of key-val database shards>
 const Ndig = 10              // number of digits
 const Nlett = 26             // number of letters
 const Nchar = 2*Nlett + Ndig // number of characters used for encoding
-
-// Address space
-const NoffBit = 24 // # bits for address offset
 
 // Round down max rand integer to avoid char conversion overflow when adding shard number
 var MaxRand int = ((pow(Nchar, NcharR) - 1) / Nshard)
