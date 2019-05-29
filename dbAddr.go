@@ -143,7 +143,7 @@ func (dbS DBS) SaveUrl(fullUrl string, addr uint64, randExt uint32, shard uint32
 }
 
 //
-func (dbS DBS) ReadUrl(addr uint64, shard uint32, passwd string) (fullUrl string, randExt int, err error) {
+func (dbS DBS) ReadUrlDB(addr uint64, shard uint32, passwd string) (fullUrl string, randE uint32, err error) {
 	// Recover from db.Exec() panic
 	defer func() {
 		if r := recover(); r != nil {
@@ -154,17 +154,19 @@ func (dbS DBS) ReadUrl(addr uint64, shard uint32, passwd string) (fullUrl string
 
 	err = dbS.OpenDB(shard, passwd)
 	if err != nil {
-		err = errors.New("ReadUrl: database connection failed")
+		err = errors.New("ReadUrlDB: database connection failed")
 		return
 	}
 
 	sqlSel := fmt.Sprintf(`SELECT randext, fullurl FROM url WHERE addr = %d;`, addr)
 	row := dbS.db.QueryRow(sqlSel)
+	var randExt int
 	err = row.Scan(&randExt, &fullUrl)
-	fmt.Println(randExt, fullUrl)
+	randE = uint32(randExt)
 	if err != nil {
-		err = errors.New("ReadUrl: URL not found")
+		err = errors.New("ReadUrlDB: URL not found")
 	}
+	fmt.Println(randExt, fullUrl)
 	return
 }
 
@@ -200,7 +202,7 @@ func TestSaveurl() error {
 		return err
 	}
 
-	fullUrlR, randExtR, err := dbS.ReadUrl(addr, shard, dbS.passwd)
+	fullUrlR, randExtR, err := dbS.ReadUrlDB(addr, shard, dbS.passwd)
 	fmt.Println(fullUrlR, randExtR, err)
 	return err
 }

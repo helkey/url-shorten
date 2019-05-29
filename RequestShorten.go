@@ -19,13 +19,13 @@ var chAddr = make(chan AddrShard)
 var dbS DBS
 
 func main() {
-	dbS.shard = 1 << 31 // initialize to unused value
 	// TestShorten()
 	// return
 
 	// Set up channel to supply channel addresses
 	// fmt.Println("RequestShorten: go chan 'getAddr'")
 	go getAddr(UrlAddrServer, chAddr)
+	dbS.shard = 1 << 31 // initialize to unused value
 
 	fmt.Println("RequestShorten/create")
 	http.HandleFunc("/create/", shortenHandler)
@@ -78,7 +78,7 @@ func TestShorten() error {
 		// Recover shard, compare to specification
 		randURL, baseURL := shortURL[:NcharR], shortURL[NcharR:]
 		fmt.Printf("'%s'  %s  %s  %s \n", url, shortURL, randURL, baseURL)
-		dR, dA, iShard := DecodeURL(shortURL)
+		dA, dR, iShard := DecodeURL(shortURL)
 		fmt.Printf("rand:%b  base:%b  shard:%d \n", dR, dA, iShard)
 	}
 	return nil

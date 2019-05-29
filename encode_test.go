@@ -51,12 +51,12 @@ func TestEncode(t *testing.T) {
 	assert.Equal(t, decode, 495548099420723299)
 	assert.Equal(t, encoded2, "ABCabs0123")
 
-	decodeR, decodeA, iShard := DecodeURL("oxABCabs0123") // randSlice=1521
+	decodeA, decodeR, iShard := DecodeURL("oxABCabs0123") // randSlice=1521
 	assert.Equal(t, decodeR, 190)
 	assert.Equal(t, decodeA, 495548099420723299)
 	assert.Equal(t, iShard, 1)
 
-	decodeR, decodeA, iShard = DecodeURL("ZG8xABCabs0123") // randSlice=14699985
+	decodeA, decodeR, iShard = DecodeURL("ZG8xABCabs0123") // randSlice=14699985
 	assert.Equal(t, decodeR, 1837498)
 	assert.Equal(t, decodeA, 495548099420723299)
 	assert.Equal(t, iShard, 1)
