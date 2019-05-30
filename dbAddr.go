@@ -1,4 +1,6 @@
 // dbAddr.go
+// go run dbAddr.go encode.go
+
 // pgstart (WSL)  # Starting PostgreSQL 10 database server
 // runpg (WSL)    # log into the psql prompt
 
@@ -33,13 +35,13 @@ type DBS struct {
 	passwd string
 }
 
-/* func main() {
+func main() {
 	err := TestSaveurl()
 	if err != nil {
 		fmt.Println("main:", err)
 	}
 	// CreateTables(passwd)
-} */
+}
 
 //
 func (dbS *DBS) OpenDB(shard uint32, passwd string) error {
@@ -181,28 +183,35 @@ func NewDBconn(shard uint32) (DBS, error) {
 	return dbS, err
 }
 
+const FullUrl = "http://Full.Url"
+const Addr, RandExt = uint64(0xaaaa), uint32(0xcccc)
+const Shard = 3
 func TestSaveurl() error {
-	const name = "url"
-	const fullUrl = "http://Full.Url"
-	const addr, randExt = uint64(0xaaaa), uint32(0xcccc)
-	const shard = 3
-	dbS, err := NewDBconn(shard)
+	const tableName = "url"
+
+	// encodeA, _ := encodeAddr(addr, NcharA)
+	// randShard := (RandExt << NshardBits) | Shard
+	// encodeR, _ := encodeAddr(randShard, charR)
+	const urlGrayList = false
+	shortUrl, _ := EncodeURL(urlGrayList, Addr, RandExt, Shard)
+	fmt.Println("TestSaveurl shortURL: ", shortUrl)
+	
+	dbS, err := NewDBconn(Shard)
+	if err != nil {
+		return err
+	}
+	dbS.DropTable(tableName)
+	dbS.CreateTable(tableName)
 	if err != nil {
 		return err
 	}
 
-	dbS.DropTable(name)
-	dbS.CreateTable(name)
+	err = dbS.SaveUrl(FullUrl, Addr, RandExt, Shard, dbS.passwd)
 	if err != nil {
 		return err
 	}
 
-	err = dbS.SaveUrl(fullUrl, addr, randExt, shard, dbS.passwd)
-	if err != nil {
-		return err
-	}
-
-	fullUrlR, randExtR, err := dbS.ReadUrlDB(addr, shard, dbS.passwd)
+	fullUrlR, randExtR, err := dbS.ReadUrlDB(Addr, Shard, dbS.passwd)
 	fmt.Println(fullUrlR, randExtR, err)
 	return err
 }

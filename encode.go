@@ -38,42 +38,43 @@ func init() {
 // TestEncode()
 //}
 
+// randExt := uint32(rand.Intn(maxR))
+// lengthen := UrlGrayList(fullURL)
 // Encode ULR string with base address, random address, and database shard
-func EncodeURL(fullURL string, baseAddr uint64, iShard uint32) (string, uint32, error) {
+func EncodeURL(urlGrayList bool, baseAddr uint64, randExt, iShard uint32) (string, error) {
 	encodeA, err := encodeAddr(baseAddr, NcharA)
 	fmt.Println("ENCODEURL baseAddr:", baseAddr, "iShard:", iShard)
 	if err != nil {
-		return "", 0, err
+		return "", err
 	}
 	if len(encodeA) != NcharA {
-		return "", 0, errors.New("Encoded base address wrong length")
+		return "", errors.New("Encoded base address wrong length")
 	}
 
 	// Check for gray-listed domains
-	lengthen := urlGrayListed(fullURL)
 	charR := NcharR
-	maxR := MaxRand
-	if lengthen {
+	// maxR := MaxRand
+	if urlGrayList {
 		charR = NcharRLong
-		maxR = MaxRandLong
+		// maxR = MaxRandLong
 	}
 
 	// String extension with rand number & shard ID
 	// random extension; before conversion to char
-	randExt := uint64(rand.Intn(maxR))
-	randShard := (randExt << NshardBits) | uint64(iShard)
+
+	randShard := uint64((randExt << NshardBits) | iShard)
 	// fmt.Printf("randExt:%d %b  randShard:%b \n", randExt, randExt, randShard)
 	encodeR, err := encodeAddr(randShard, charR)
 	// fmt.Println("encodeR:", encodeR, "err:", err)
 	if err != nil {
-		return "", 0, err
+		return "", err
 	}
 	if len(encodeR) != charR {
-		return "", 0, errors.New("Encoded random extension wrong length")
+		return "", errors.New("Encoded random extension wrong length")
 	}
 	shortURL := encodeR + encodeA
 	// fmt.Println("shortURL:", shortURL, "encodeR:", encodeR, "encodeA:", encodeA)
-	return shortURL, uint32(randExt), nil
+	return shortURL, nil
 }
 
 func DecodeURL(shortURL string) (uint64, uint32, uint32) {
@@ -100,7 +101,7 @@ func randString(strLen int) string {
 
 // Sensitive domains to be encoded with longer shortened URL
 // https://gobyexample.com/url-parsing
-func urlGrayListed(longURL string) bool {
+func UrlGrayList(longURL string) bool {
 	u, err := url.Parse(longURL)
 	if err != nil {
 		// Failed parse - assume domain not gray-listed
