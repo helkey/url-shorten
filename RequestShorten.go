@@ -1,7 +1,7 @@
 // RequestShorten
 // go run RequestShorten.go addr.go dbAddr.go encode.go
 // "localhost:8086/create" (working WSL)
-// "localhost:8086/create/?source=&url=..."
+// "localhost:8086/create/?source=&url=http://FullURL"
 
 package main
 
@@ -28,31 +28,31 @@ func main() {
 	dbS.shard = 1 << 31 // initialize to unused value
 
 	fmt.Println("RequestShorten/create")
-	http.HandleFunc("/create/", shortenHandler)
+	http.HandleFunc("/", shortenHandler)
 	log.Fatal(http.ListenAndServe(UrlShorten, nil))
 }
 
 func shortenHandler(w http.ResponseWriter, r *http.Request) {
+	const header = "create/?source=&url=" // header before full URL
 	path := r.URL.Path
 	fmt.Fprintf(w, "shorten", path)
-	return
-	if r.Method != "GET" {
-		http.Error(w, "405 method not allowed.", http.StatusMethodNotAllowed)
-		return
-	}
-	const header = "?source=&url=" // header before long URL argument
-	if (len(path) <= len(header)) || (path[:len(header)] == header) {
+	if (len(path) <= len(header)) || (path[:len(header)] != header) {
 		// Argument too short to contain URL
+		e := "RequestShorten - invalid request: " + path
+		fmt.Println(e)
+		log.Println(e)
 		http.Error(w, "404 not found.", http.StatusNotFound)
 		return
 	}
-	fullURL := path[:len(header)]
+	fullUrl := path[:len(header)]
+	fmt.Fprintf(w, "shorten ", path, fullUrl)
+	return
 	addrShard := <-chAddr
 	addr := addrShard.addr
 	shard := addrShard.shard
-	shortURL, randExt, err := EncodeURL(fullURL, addr, shard) // encode.go
+	shortUrl, randExt, err := EncodeURL(fullURL, addr, shard) // encode.go
 	if err != nil {
-		log.Fatal("shortenHandler: error shortinging URL", fullURL)
+		log.Fatal("shortenHandler: error shortinging URL", fullUrl)
 		fmt.Fprintf(w, "error shortening URL")
 	} else {
 		err := dbS.SaveUrl(fullURL, addr, randExt, shard, passwd)

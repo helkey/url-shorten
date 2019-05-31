@@ -1,5 +1,5 @@
 // encode_test
-// go test encode_test.go encode.go
+// go test encode_test.go addr.go encode.go 
 
 package main
 
@@ -30,11 +30,11 @@ func TestRange(t *testing.T) {
 
 // Test encoding/decoding functions
 func TestEncode(t *testing.T) {
-	en, iShard := "ABCabs012", uint32(0)
+	en, iShard := "ABCabs012", 0
 	s, _, _ := EncodeURL("https://goog.com", decode(en), iShard)
 	i := len(s) - len(en)
 	decodeRS := decode(s[:i])
-	shard := uint32(decodeRS & uint64(Nshard-1))
+	shard := int(decodeRS & (Nshard-1))
 	assert.Equal(t, en, s[i:])
 	assert.Equal(t, iShard, shard)
 	return
@@ -43,7 +43,7 @@ func TestEncode(t *testing.T) {
 	s, _, _ = EncodeURL("https://dropbox.com", decode(en), iShard)
 	i = len(s) - len(en)
 	decodeRS = decode(s[:i])
-	shard = uint32(decodeRS & uint64(Nshard-1))
+	shard = int(decodeRS & (Nshard-1))
 
 	encoded := "ABCabs0123"
 	decoded := decode(encoded)
@@ -65,8 +65,8 @@ func TestEncode(t *testing.T) {
 func TestGraylisted(t *testing.T) {
 	url := "postgres://user:pass@host.com:5432/path?k=v#f"
 	// fmt.Println("graylisted:", urlGrayListed(url))
-	assert.False(t, urlGrayListed(url))
+	assert.False(t, UrlGrayList(url))
 	url = "https://www.dropbox.com/filename"
 	// fmt.Println(urlGrayListed(url)) // assert true
-	assert.True(t, urlGrayListed(url))
+	assert.True(t, UrlGrayList(url))
 }
