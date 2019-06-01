@@ -1,5 +1,5 @@
 // RequestAddr
-// $ go run RequestAddr.go addr.go encode.go
+// $ go run RequestAddr.go addr.go encode.go genAddr.go
 // {}: 127.0.0.1:8088/addr
 package main
 
@@ -14,19 +14,10 @@ import (
 
 const UrlAddrServer = "127.0.0.1:8088" // (IPv6 ::1)
 
-// To reduce resources required for demonstration,
-//   only 1/64th all address ranges can be allocated with this code.
-// Code is structured so that it could be upgraded to the full range
-//   in service, with randomization on which rangs would be use,
-//   so that access to the code base would not reduce security.
-const NallocBits = 6           // allocate 1 out of 2^N bits (can allocate later)
-const Nalloc = 1 << NallocBits // ratio of unallocated to allocated addresses
-var Nrange = pow(Nchar, NcharA) >> NaddrBit
-var NrangeAlloc = Nrange >> NallocBits
-
 func main() {
 	fmt.Println("START RequestAddr")
-	loadAddrBase()
+	addrArr, err := LoadAddrArr()
+	
 	http.HandleFunc("/addr", addrHandle)
 	log.Fatal(http.ListenAndServe(UrlAddrServer, nil))
 }
@@ -60,8 +51,7 @@ func addrShardToStr(addr, iShard int) string {
 
 // Generate/save/load array of base addresses ranges
 func loadAddrBase() {
-	rand.Seed(time.Now().UnixNano()) // pick random seed
-	addrBaseArr = rand.Perm(NrangeAlloc)
+
 	// dbAddr: SaveAddrBase(addrBaseArr)
 }
 

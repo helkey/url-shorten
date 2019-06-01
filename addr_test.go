@@ -1,5 +1,5 @@
 // Addr_test
-// $ go test addr_test.go addr.go encode.go
+// go test addr_test.go addr.go encode.go
 
 package main
 

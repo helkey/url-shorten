@@ -30,62 +30,65 @@ const Nchar = 2*Nlett + Ndig // number of characters used for encoding
 var MaxRand int = ((pow(Nchar, NcharR) - 1) / Nshard)
 var MaxRandLong int = ((pow(Nchar, NcharRLong) - 1) / Nshard)
 
+var Nrange = pow(Nchar, NcharA) >> NaddrBit
+
 func init() {
 	rand.Seed(time.Now().UnixNano()) // pick random seed
 }
 
-//func main() {
-// TestEncode()
-//}
 
-// randExt := uint32(rand.Intn(maxR))
-// lengthen := UrlGrayList(fullURL)
-// Encode ULR string with base address, random address, and database shard
-func EncodeURL(urlGrayList bool, baseAddr uint64, randExt, iShard uint32) (string, error) {
-	encodeA, err := encodeAddr(baseAddr, NcharA)
-	fmt.Println("ENCODEURL baseAddr:", baseAddr, "iShard:", iShard)
+// Encode ULR string with address, random address, and database shard
+func EncodeURL(fullUrl string, addr uint64, iShard int) (string, int, error) {
+	isGrayList := UrlGrayList(fullUrl) // Check for gray-listed domains
+	nChar := NcharR
+	maxR := MaxRand
+	if isGrayList {
+		nChar = NcharRLong
+		maxR = MaxRandLong
+	}
+	randExt := rand.Intn(maxR)
+	shortUrl, err := encode(isGrayList, addr, randExt, iShard, nChar)
+	return shortUrl, randExt, err
+}
+
+// Encode ULR string with address, random address, and database shard
+func encode(isGrayList bool, addr uint64, randExt, iShard, nChar int) (string, error) {
+	encodeA, err := encodeAddr(addr, NcharA)
+	fmt.Println("encode addr:", addr, "iShard:", iShard)
 	if err != nil {
 		return "", err
 	}
 	if len(encodeA) != NcharA {
-		return "", errors.New("Encoded base address wrong length")
+		return "", errors.New("Encoded address is wrong length")
 	}
 
-	// Check for gray-listed domains
-	charR := NcharR
-	// maxR := MaxRand
-	if urlGrayList {
-		charR = NcharRLong
-		// maxR = MaxRandLong
-	}
 
 	// String extension with rand number & shard ID
 	// random extension; before conversion to char
-
 	randShard := uint64((randExt << NshardBits) | iShard)
 	// fmt.Printf("randExt:%d %b  randShard:%b \n", randExt, randExt, randShard)
-	encodeR, err := encodeAddr(randShard, charR)
+	encodeR, err := encodeAddr(randShard, nChar)
 	// fmt.Println("encodeR:", encodeR, "err:", err)
 	if err != nil {
 		return "", err
 	}
-	if len(encodeR) != charR {
+	if len(encodeR) != nChar {
 		return "", errors.New("Encoded random extension wrong length")
 	}
-	shortURL := encodeR + encodeA
+	shortUrl := encodeR + encodeA
 	// fmt.Println("shortURL:", shortURL, "encodeR:", encodeR, "encodeA:", encodeA)
-	return shortURL, nil
+	return shortUrl, nil
 }
 
-func DecodeURL(shortURL string) (uint64, uint32, uint32) {
-	// fmt.Println("shortURL:", shortURL)
-	lenExt := len(shortURL) - NcharA
-	// split shortURL into extension and base address
-	encodeR, encodeA := shortURL[:lenExt], shortURL[lenExt:]
-	decodeRS := decode(encodeR)
-	decodeR := uint32(decodeRS >> NshardBits)     // random value
-	iShard := uint32(decodeRS & uint64(Nshard-1)) // database shard
+func DecodeURL(shortUrl string) (uint64, int, int) {
+	// fmt.Println("shortUrl:", shortUrl)
+	lenExt := len(shortUrl) - NcharA
+	// split shortUrl into extension and address
+	encodeR, encodeA := shortUrl[:lenExt], shortUrl[lenExt:]
 	decodeA := decode(encodeA)
+	decodeRS := int(decode(encodeR))
+	decodeR := decodeRS >> NshardBits // random value
+	iShard := decodeRS & (Nshard-1) // database shard
 	// fmt.Println(encodeR, encodeA, decodeR, iShard)
 	return decodeA, decodeR, iShard
 }
@@ -101,8 +104,8 @@ func randString(strLen int) string {
 
 // Sensitive domains to be encoded with longer shortened URL
 // https://gobyexample.com/url-parsing
-func UrlGrayList(longURL string) bool {
-	u, err := url.Parse(longURL)
+func UrlGrayList(longUrl string) bool {
+	u, err := url.Parse(longUrl)
 	if err != nil {
 		// Failed parse - assume domain not gray-listed
 		return false
@@ -140,10 +143,10 @@ func num2char() []byte {
 
 var numChar = num2char()
 
-// Convert binary value to
+// Convert binary value to URL string
 func encodeAddr(address uint64, nChars int) (string, error) {
 	encoded := ""
-	// Convert 'address' to base numChar;
+	// Convert 'address' to numChar;
 	//   convert each digit to character representation
 	for i := 0; i < nChars; i++ {
 		charVal := address % Nchar
@@ -197,12 +200,12 @@ func pow(a, b int) int {
 //func  TestEncode(t *testing.T) {
 /*
 func  TestEncode() {
-	en, iShard:= "ABCabs012", uint32(0)
+	en, iShard:= "ABCabs012", 0
 	s, _, _ := EncodeURL("https://goog.com", decode(en), iShard)
 	// assert.Equal(en, s[len(s)-len(en):])
 	i := len(s) - len(en)
 	decodeRS := decode(s[:i])
-	shard := uint32(decodeRS & uint64(Nshard-1))
+	shard := decodeRS & Nshard-1)
 	fmt.Println(en, s[i:], iShard, shard)
 	fmt.Println()
 
