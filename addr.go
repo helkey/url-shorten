@@ -24,7 +24,7 @@ func init() {
 
 type AddrShard struct {
 	addr  uint64
-	shard uint32
+	shard int
 }
 
 // Address space
@@ -81,14 +81,6 @@ func getBaseAddr(urlAddrServer string, chBase chan AddrShard) {
 var shardMask = uint64(Nshard) - 1
 var baseMask = ^shardMask
 
-// Convert addrShard from uint64 to struct{}
-func addrShardToStruct(baseShard uint64) AddrShard {
-	addrShard := new(AddrShard)
-	addrShard.addr = (baseShard & baseMask) >> NshardBits
-	addrShard.shard = uint32(baseShard & shardMask)
-	return *addrShard
-}
-
 // Single request for base address, database shard from remote address server
 //   Note: specify timeout (don't use default http request client)
 //   TODO: re-write this with gRPC
@@ -115,6 +107,15 @@ func getBaseAddrServer(urlAddrServer string) (AddrShard, error) {
 	addrShard := addrShardToStruct(uint64(addrShardUint))
 	return addrShard, err
 }
+
+// Convert addrShard from uint64 to struct{}
+func addrShardToStruct(baseShard uint64) AddrShard {
+	addrShard := new(AddrShard)
+	addrShard.addr = (baseShard & baseMask) >> NshardBits
+	addrShard.shard = int(baseShard & shardMask)
+	return *addrShard
+}
+
 
 var getBaseAddrServe = getBaseAddrServer
 
