@@ -23,7 +23,7 @@ const (
 )
 
 type DB struct {
-	db     *sql.DB
+	db *sql.DB
 }
 
 func OpenDB(passwd string) (DB, error) {
@@ -33,16 +33,12 @@ func OpenDB(passwd string) (DB, error) {
 	db, err := sql.Open(dbType, dbInfo)
 	if err != nil {
 		e := "dbAddr: not able to connect to database"
-		fmt.Println(e)
-		// log.Fatal(e)
 		return DB{}, errors.New(e)
 	}
-
 	return DB{db}, nil
 }
 
-
-func (dB DB) DropTable(table string) (err error) {
+func (dB DB) DropTable() (err error) {
 	// Recover from db.Exec() panic
 	defer func() {
 		if r := recover(); r != nil {
@@ -51,36 +47,41 @@ func (dB DB) DropTable(table string) (err error) {
 		}
 	}()
 
-	sqlDrop := fmt.Sprintf(`DROP TABLE %s;`, table)
-	_, err = dB.db.Exec(sqlDrop)
+	fmt.Println("DropTable")
+	_, err = dB.db.Exec(`DROP TABLE addr;`)
+	fmt.Println("Table dropped?")
 	if err != nil {
-		fmt.Println("DropTable:", err)
+		fmt.Println("dbAddr: table 'addr' not dropped", err)
 	}
 	return err
 }
 
-func (dB DB) CreateTable(table string) (err error) {
+func (dB DB) CreateTable() (err error) {
 	// Recover from db.Exec() panic
 	defer func() {
 		if r := recover(); r != nil {
-			e := "CreateTable: can't create database table"
+			e := "dbAddr: can't create database table"
 			err = errors.New(e)
 		}
 	}()
 
-	sqlTbl := fmt.Sprintf(`CREATE TABLE %s (addr INTEGER PRIMARY KEY, avail BOOL);`, table)
-	_, err = dB.db.Exec(sqlTbl)
+	_, err = dB.db.Exec(`CREATE TABLE addr (addr INTEGER PRIMARY KEY, avail BOOL);`)
 	if err != nil {
-		fmt.Println("3:", err)
+		fmt.Println("dbAddr/createtable: ", err)
 	}
 	return
 }
 
-func (dB DB) SaveAddrArr(table string, addrArr []int) error {
-	const assigned = false
+func (dB DB) SaveAddrArr(addrArr []int) error {
+	const avail = true
+	sqlInsert, err := dB.db.Prepare(`INSERT INTO addr (addr, avail) VALUES ($1, $2);`)
+	if err != nil {
+		return err
+	}
+	defer sqlInsert.Close()
 	for _, addr := range addrArr {
 		const avail = true
-		err := dB.SaveAddrDB(table, addr, avail)
+		err := dB.SaveAddrDB(sqlInsert, addr, avail)
 		if err != nil {
 			return err
 		}
@@ -88,7 +89,7 @@ func (dB DB) SaveAddrArr(table string, addrArr []int) error {
 	return nil
 }
 
-func (dB DB) SaveAddrDB(table string, addr int, avail bool) (err error) {
+func (dB DB) SaveAddrDB(sqlInsert *sql.Stmt, addr int, avail bool) (err error) {
 	// Recover from db.Exec() panic
 	defer func() {
 		if r := recover(); r != nil {
@@ -97,16 +98,15 @@ func (dB DB) SaveAddrDB(table string, addr int, avail bool) (err error) {
 		}
 	}()
 
-	sqlIns := fmt.Sprintf(`INSERT INTO %s (addr, avail) VALUES ($1, $2);`, table)
-	fmt.Println(sqlIns, addr, avail)
-	_, err = dB.db.Exec(sqlIns, addr, avail)
+	_, err = dB.db.Exec(`INSERT INTO addr (addr, avail) VALUES ($1, $2);`, addr, avail)
+	// _, err = sqlInsert.Query(addr, avail)
 	if err != nil {
 		return errors.New("dbAddr: error saving to 'addr' DB")
 	}
 	return
 }
 
-func (dB DB) LoadAddrArr(table string) (addrArr []uint64, err error) {
+func (dB DB) GetAddrArr() (addrArr []uint64, err error) {
 	// Recover from db.Exec() panic
 	defer func() {
 		if r := recover(); r != nil {
@@ -115,26 +115,30 @@ func (dB DB) LoadAddrArr(table string) (addrArr []uint64, err error) {
 		}
 	}()
 
-	rows, err := dB.db.Query(`SELECT addr, avail FROM addr;`)
-	addrArr = make([]uint64, 10)
-	indx := 0
+	// Allocate addrArr in single step
+	row := dB.db.QueryRow(`SELECT COUNT(*) FROM addr WHERE avail = TRUE;`)
+	var nAvail int
+	err = row.Scan(&nAvail)
+	if err != nil {
+		return
+	}
+	addrArr = make([]uint64, nAvail)
+
+	rows, err := dB.db.Query(`SELECT addr FROM addr WHERE avail = TRUE;`)
 	var addr int
-	var avail bool
+	// var avail bool
+	indx := 0
 	for rows.Next() {
-		err = rows.Scan(&addr, &avail)
-		// fmt.Println(addr, avail)
-		if avail {
-			fmt.Println(addr)
-			addrArr[indx] = uint64(addr)
-			indx++
-		}
+		err = rows.Scan(&addr)
+		fmt.Println(addr)
+		addrArr[indx] = uint64(addr)
+		indx++
 	}
 	return addrArr, nil
 }
 
-
 // Mark assigned address range as unavailable for additional assignment
-func (dB DB) MarkAddrUsed(table string, addr int) (err error) {
+func (dB DB) MarkAddrUsed(addr uint64) (err error) {
 	// Recover from db.Exec() panic
 	defer func() {
 		if r := recover(); r != nil {
@@ -142,16 +146,8 @@ func (dB DB) MarkAddrUsed(table string, addr int) (err error) {
 			err = errors.New(e)
 		}
 	}()
-	
-	sqlUpdate := fmt.Sprintf(`UPDATE *s SET avail = 'FALSE' WHERE addr = %s;`, table, addr)
-	_, err = dB.db.Exec(sqlUpdate)
 
-	// READ valueQueryRow, make sure 'avail' now false
-	// if err != nil {
-	// err = errors.New("dbAddr: URL not found") }
+	_, err = dB.db.Exec(`UPDATE addr SET avail = 'FALSE' WHERE addr = $1;`, addr)
 	return
 
 }
-
-
-	
