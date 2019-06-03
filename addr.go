@@ -45,7 +45,7 @@ func getAddr(urlAddrServer string, chAddr chan AddrShard) {
 		//    each base address from server
 		baseShard := <-chBase // get base address, DB shard from server
 		baseAddr := baseShard.addr
-		addrs := rand.Perm(maxAddrOff + 1) // select addr offsets in random order
+		addrs := rand.Perm(maxAddrOff + 1) // select address offsets in random order
 		for _, addr := range addrs {
 			addrShard := new(AddrShard)
 			addrShard.shard = baseShard.shard
@@ -62,10 +62,10 @@ func getBaseAddr(urlAddrServer string, chBase chan AddrShard) {
 		// Request base address range from server
 		baseShard, err := getBaseAddrServe(urlAddrServer)
 		if err != nil {
-			// Retry address server until responds
+			// Set timeout: Retry address server until responds
 			ticker := time.NewTicker(retryInterval * time.Second)
 			for _ = range ticker.C {
-				baseShard, err = getBaseAddrServe(urlAddrServer)
+				baseShard, err = baseAddrFromServer(urlAddrServer)
 				if err == nil {
 					break
 				}
@@ -83,8 +83,8 @@ var baseMask = ^shardMask
 
 // Single request for base address, database shard from remote address server
 //   Note: specify timeout (don't use default http request client)
-//   TODO: re-write this with gRPC
-func getBaseAddrServer(urlAddrServer string) (AddrShard, error) {
+//   TODO: re-write with gRPC
+func baseAddrFromServer(urlAddrServer string) (AddrShard, error) {
 	var netClient = &http.Client{
 		Timeout: time.Second * requestTimeout,
 	}

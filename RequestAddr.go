@@ -25,34 +25,45 @@ func main() {
 var shard int = 0 // Database shard assigned for address range
 var iAddr = 0     // pointer to current address range
 
+// Get base address from go channel buffer
+// Round-robin database shard allocation
 func addrHandle(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "RequestAddr")
 	return
 
-	addrBase := addrBaseArr[iAddr]
-	fmt.Fprintf(w, string(addrBase))
-
-	// Extend addrBase with NallocBits random bits
-	addr := (addrBase << NallocBits) | rand.Intn(Nalloc)
-	addrShardStr := addrShardToStr(addr, shard)
-	fmt.Fprintf(w, addrShardStr)
-
+	addr = <-chAddr
 	shard = (shard + 1) % Nshard
-	iAddr++
-	// Mark addr in DB as allocated
+	addrShard := addrShartToStr(addr, shard)
+	fmt.Fprintf(w, "RequestAddr")
 }
 
-func addrShardToStr(addr, iShard int) string {
+func addrShardToStr(addr, shard int) string {
 	// Add iShard to address space
-	addrShard := addr<<NshardBits | iShard
+	addrShard := addr<<NshardBits | shard
 	addrShardStr := strconv.Itoa(addrShard)
 	return addrShardStr
 }
 
-// Generate/save/load array of base addresses ranges
-func loadAddrBase() {
-
-	// dbAddr: SaveAddrBase(addrBaseArr)
+// Queue base addresses for assignment
+//   using buffered go channel as queue.
+func sendBaseAddr(urlAddrServer string, chBase chan AddrShard) {
+	const SLEEPSEC = 1
+	for {
+		// Get one base address
+		for {
+			addr, err := GetRandAddr()
+			if err == nil {
+				// Block here when buffer full
+				chAddr <- addr
+				break
+			}
+			// Failed to get base address;
+			//   wait, then re-try
+			time.Sleep(SLEEPSEC * time.Second)
+		}
+	}
 }
 
-var addrBaseArr []int
+
+
+

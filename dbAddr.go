@@ -1,5 +1,5 @@
 // dbAddr.go
-// go test dbAddr_test ***.go encode.go 'passwd'
+// go run dbAddr.go addr.go encode.go 'passwd'
 
 // pgstart (WSL)  # Starting PostgreSQL 10 database server
 // runpg (WSL)    # log into the psql prompt
@@ -10,7 +10,9 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-
+	"math/rand"
+	"time"
+	
 	_ "github.com/lib/pq"
 )
 
@@ -24,6 +26,11 @@ const (
 
 type DB struct {
 	db *sql.DB
+}
+
+func init() {
+	// rand.Seed(time.Now().UnixNano()) // initialize random seed
+	rand.Seed(0) // initialize random seed
 }
 
 func OpenDB(passwd string) (DB, error) {
@@ -48,10 +55,10 @@ func (dB DB) DropTable() (err error) {
 	}()
 
 	fmt.Println("DropTable")
-	_, err = dB.db.Exec(`DROP TABLE addr;`)
+	_, err = dB.db.Exec(`DROP TABLE addrs;`)
 	fmt.Println("Table dropped?")
 	if err != nil {
-		fmt.Println("dbAddr: table 'addr' not dropped", err)
+		fmt.Println("dbAddr: table 'addrs' not dropped", err)
 	}
 	return err
 }
@@ -65,28 +72,41 @@ func (dB DB) CreateTable() (err error) {
 		}
 	}()
 
-	_, err = dB.db.Exec(`CREATE TABLE addr (addr INTEGER PRIMARY KEY, avail BOOL);`)
+	_, err = dB.db.Exec(`CREATE TABLE addrs (addr INTEGER PRIMARY KEY, avail BOOL);`)
 	if err != nil {
 		fmt.Println("dbAddr/createtable: ", err)
 	}
 	return
 }
 
-func (dB DB) SaveAddrArr(addrArr []int) error {
-	const avail = true
-	sqlInsert, err := dB.db.Prepare(`INSERT INTO addr (addr, avail) VALUES ($1, $2);`)
-	if err != nil {
-		return err
-	}
-	defer sqlInsert.Close()
-	for _, addr := range addrArr {
-		const avail = true
-		err := dB.SaveAddrDB(sqlInsert, addr, avail)
+
+// Select random address. Return err if can't access address DB.
+func (dB DB) GetRandAddr() (addr uint64, err error) {
+	for addr = uint64(rand.Intn(Nrange)); ; {
+		var count int
+		count, err = dB.NumAddrRows(addr)
 		if err != nil {
-			return err
+			return
 		}
+		// Select again if random addr not avail
+		if count == 0 {
+			const NOTAVAIL = false
+			err = dB.SaveAddrDB(addr, NOTAVAIL)
+			if err != nil {
+				return
+			}
+			// Try again if addr not successfully inserted in DB,
+			//   or two processes trying to use same random addr
+			const sleepSec = 1
+			time.Sleep(sleepSec * time.Second)
+			count, err = dB.NumAddrRows(addr)
+			if (count == 1) || (err != nil) {
+				return
+			}
+		}
+			
 	}
-	return nil
+
 }
 
 func (dB DB) SaveAddrDB(sqlInsert *sql.Stmt, addr int, avail bool) (err error) {
@@ -98,15 +118,14 @@ func (dB DB) SaveAddrDB(sqlInsert *sql.Stmt, addr int, avail bool) (err error) {
 		}
 	}()
 
-	_, err = dB.db.Exec(`INSERT INTO addr (addr, avail) VALUES ($1, $2);`, addr, avail)
-	// _, err = sqlInsert.Query(addr, avail)
+	_, err = dB.db.Exec(`INSERT INTO addrs (addr, avail) VALUES ($1, $2);`, addr, avail)
 	if err != nil {
-		return errors.New("dbAddr: error saving to 'addr' DB")
+		return errors.New("dbAddr: error saving to 'addrs' DB")
 	}
 	return
 }
 
-func (dB DB) GetAddrArr() (addrArr []uint64, err error) {
+func (dB DB) NumAddrRows(addr uint64) (nAvail int, err error) {
 	// Recover from db.Exec() panic
 	defer func() {
 		if r := recover(); r != nil {
@@ -116,38 +135,9 @@ func (dB DB) GetAddrArr() (addrArr []uint64, err error) {
 	}()
 
 	// Allocate addrArr in single step
-	row := dB.db.QueryRow(`SELECT COUNT(*) FROM addr WHERE avail = TRUE;`)
-	var nAvail int
+	row := dB.db.QueryRow(`SELECT COUNT(*) FROM addrs WHERE addr = $1;`, addr)
 	err = row.Scan(&nAvail)
-	if err != nil {
-		return
-	}
-	addrArr = make([]uint64, nAvail)
-
-	rows, err := dB.db.Query(`SELECT addr FROM addr WHERE avail = TRUE;`)
-	var addr int
-	// var avail bool
-	indx := 0
-	for rows.Next() {
-		err = rows.Scan(&addr)
-		fmt.Println(addr)
-		addrArr[indx] = uint64(addr)
-		indx++
-	}
-	return addrArr, nil
-}
-
-// Mark assigned address range as unavailable for additional assignment
-func (dB DB) MarkAddrUsed(addr uint64) (err error) {
-	// Recover from db.Exec() panic
-	defer func() {
-		if r := recover(); r != nil {
-			e := "SaveUrl: can't save URL mapping in database"
-			err = errors.New(e)
-		}
-	}()
-
-	_, err = dB.db.Exec(`UPDATE addr SET avail = 'FALSE' WHERE addr = $1;`, addr)
 	return
-
 }
+
+
