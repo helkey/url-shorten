@@ -86,6 +86,7 @@ func (dB DB) GetRandAddr() (addr uint64, err error) {
 		var count int
 		count, err = dB.NumAddrRows(addr)
 		if err != nil {
+			fmt.Println("ERR dbAddr/NumAddrRows")
 			return
 		}
 		// Select again if random addr not avail
@@ -93,6 +94,7 @@ func (dB DB) GetRandAddr() (addr uint64, err error) {
 			const NOTAVAIL = false
 			err = dB.SaveAddrDB(addr, NOTAVAIL)
 			if err != nil {
+				fmt.Println("ERR dbAddr/SaveAddrDB")
 				return
 			}
 			// Try again if addr not successfully inserted in DB,
@@ -100,8 +102,12 @@ func (dB DB) GetRandAddr() (addr uint64, err error) {
 			const sleepSec = 1
 			time.Sleep(sleepSec * time.Second)
 			count, err = dB.NumAddrRows(addr)
-			if (count == 1) || (err != nil) {
+			if err != nil {
+				fmt.Println("ERR dbAddr/NumAddrRows - 2")
 				return
+			}
+			if (count == 1) {
+				return // successfully selected rand addr
 			}
 		}
 			
@@ -109,7 +115,7 @@ func (dB DB) GetRandAddr() (addr uint64, err error) {
 
 }
 
-func (dB DB) SaveAddrDB(sqlInsert *sql.Stmt, addr int, avail bool) (err error) {
+func (dB DB) SaveAddrDB(addr uint64, avail bool) (err error) {
 	// Recover from db.Exec() panic
 	defer func() {
 		if r := recover(); r != nil {

@@ -52,7 +52,7 @@ func expandHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	
 	// Lookup randExt and fullURL (given database shard)
-	passwd := getPasswd()
+	passwd := os.Args[1]
 	fullURL, randDB, err := dbS.ReadUrlDB(decodeA, shard, passwd)
 	// Check saved randExt matches supplied value
 	if err != nil {
@@ -68,13 +68,6 @@ func expandHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, fullURL)
 	// Redirect to decoded fullURL
 	return
-}
-
-func getPasswd() string {
-	if len(os.Args) <= 1 {
-		return ""
-	}
-	return	os.Args[1]
 }
 
 // go run RequestShorten.go addr.go encode.go // RequestAddr.go

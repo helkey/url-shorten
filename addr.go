@@ -117,7 +117,7 @@ func addrShardToStruct(baseShard uint64) AddrShard {
 }
 
 
-var getBaseAddrServe = getBaseAddrServer
+var getBaseAddrServe = baseAddrFromServer
 
 // For automated testing. Overrides defaults, mocks address server
 func MockServer(baseAddr uint64) chan AddrShard {
