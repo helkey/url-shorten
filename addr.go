@@ -11,6 +11,7 @@ import (
 	"math/rand"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -98,22 +99,27 @@ func baseAddrFromServer(urlAddrServer string) (AddrShard, error) {
 	if err != nil {
 		return AddrShard{}, errors.New("Failed ioutil.ReadAll")
 	}
-	addrShardUint, err := strconv.Atoi(string(body))
+	addrShard, err := sepAddrShard(string(body))
 	if err != nil {
 		return AddrShard{}, errors.New("Failed to recognize address from server")
 	}
 
-	// fmt.Println("body:", body, "addrShard", addrShard, err)
-	addrShard := addrShardToStruct(uint64(addrShardUint))
 	return addrShard, err
 }
 
-// Convert addrShard from uint64 to struct{}
-func addrShardToStruct(baseShard uint64) AddrShard {
-	addrShard := new(AddrShard)
-	addrShard.addr = (baseShard & baseMask) >> NshardBits
-	addrShard.shard = int(baseShard & shardMask)
-	return *addrShard
+// Convert addrShard into addr and shard
+func sepAddrShard(addrShardStr string) (addrShard AddrShard, err error) {
+	iSep := strings.Index(addrShardStr,"/")
+	if iSep < 0 {
+		return
+	}
+	addrShard.addr, err = strconv.Atoi(addrShardStr[:iSep])
+	if err != nil {
+		return
+	}
+	addrShard.shard, err = strconv.Atoi(addrShardStr[:iSep])
+	// addrShard.shard = shard
+	return
 }
 
 
@@ -126,7 +132,6 @@ func MockServer(baseAddr uint64) chan AddrShard {
 	const baseIncr uint64 = 1024
 	addrShard := new(AddrShard)
 	addrShard.addr = baseAddr
-	rand.Seed(0) // const seed for repeatible test results
 	getBaseAddrServe = func(url string) (AddrShard, error) {
 		addrShard.addr += baseIncr
 		return *addrShard, nil

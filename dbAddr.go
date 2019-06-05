@@ -28,11 +28,6 @@ type DB struct {
 	db *sql.DB
 }
 
-func init() {
-	// rand.Seed(time.Now().UnixNano()) // initialize random seed
-	rand.Seed(0) // initialize random seed
-}
-
 func OpenDB(passwd string) (DB, error) {
 	dbInfo := fmt.Sprintf("host=%s port=%d user=%s "+
 		"password=%s dbname=%s sslmode=disable",

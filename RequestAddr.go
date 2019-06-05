@@ -1,11 +1,12 @@
 // RequestAddr
-//$ go run RequestAddr.go addr.go dbAddr.go encode.go 'passwd
+// go run RequestAddr.go addr.go dbAddr.go encode.go 'passwd
 //   {}: 127.0.0.1:8088/addr
 package main
 
 import (
 	"fmt"
 	"log"
+	"math/rand"
 	"net/http"
 	"os"
 	"strconv"
@@ -22,10 +23,13 @@ func main() {
 		fmt.Println("ERR RequestAddr:OpenDB")
 		return
 	}
+	err = dB.DropTable()
 	err = dB.CreateTable()
 	fmt.Println("RequestAddr/CreateTable: ", err)
 	
-	const gochanDepth = 2
+	// rand.Seed(time.Now().UnixNano()) // initialize random seed
+	rand.Seed(0) // initialize deterministic seed
+	const gochanDepth = 1
 	chAddr = make(chan uint64, gochanDepth)
 	go sendBaseAddr(chAddr)
 	
@@ -43,15 +47,16 @@ func addrHandle(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("RequestAddr: addrHandle")
 	addr := <-chAddr
 	fmt.Println("RequestAddr: addr=", addr)
-	shard = (shard + 1) % Nshard
 	addrShard := addrShardToStr(addr, shard)
 	fmt.Fprintf(w, addrShard)
+	shard = (shard + 1) % Nshard
 }
 
 func addrShardToStr(addr uint64, shard int) string {
 	// Add shard to address space
-	addrShard := addr<<NshardBits | uint64(shard)
-	addrShardStr := strconv.Itoa(int(addrShard))
+	// addrShard := addr<<NshardBits | uint64(shard)
+	// addrShardStr := strconv.Itoa(int(addrShard))
+	addrShardStr := strconv.Itoa(int(addr)) + "/" + strconv.Itoa(shard)
 	return addrShardStr
 }
 
@@ -66,7 +71,7 @@ func sendBaseAddr(chBase chan uint64) {
 		passwd := password()
 		dB, err := OpenDB(passwd)
 		if err != nil {
-			fmt.Println("ERR sendBaseAddr: OpenDB")
+			fmt.Println("ERR RequestAddr: OpenDB")
 			time.Sleep(SLEEPSEC * time.Second)
 			continue
 		}
@@ -75,7 +80,7 @@ func sendBaseAddr(chBase chan uint64) {
 		dB.db.Close()
 		
 		if err != nil {
-			fmt.Println("ERR sendBaseAddr: ", err)
+			fmt.Println("ERR RequestAddr: ", err)
 			time.Sleep(SLEEPSEC * time.Second)
 			continue
 		}

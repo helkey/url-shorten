@@ -1,5 +1,5 @@
 // dbAddr_test.go
-// go test dbAddr_test.go dbAddr.go addr.go encode.go genAddr.go -args 'passwd
+// go test dbAddr_test.go dbAddr.go addr.go encode.go -args 'passwd
 
 package main
 
@@ -12,32 +12,32 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func init() {
+	rand.Seed(0) // pick non-random seed
+}
+
 const FullUrl = "http://Full.Url"
 const Addr, RandExt = uint64(0xaaaa), 0xcccc
 const Shard = 3
 
 func TestAddr(t *testing.T) {
 	passwd := os.Args[1]
-	db, err := OpenDB(passwd)
+	dB, err := OpenDB(passwd)
 	assert.Equal(t, err, nil)
-	err = db.DropTable()
+	err = dB.DropTable()
 	assert.Equal(t, err, nil)
-	err = db.CreateTable()
-	assert.Equal(t, err, nil)
-
-	rand.Seed(0) // pick non-random seed
-	NrangeAlloc := Nrange >> NallocBits
-	const len_test = 10
-	addrArr := rand.Perm(NrangeAlloc)[:len_test]
-	err = db.SaveAddrArr(addrArr)
+	err = dB.CreateTable()
 	assert.Equal(t, err, nil)
 
-	addrArrR, err := db.GetAddrArr()
+	addr1, err := dB.GetRandAddr()
 	assert.Equal(t, err, nil)
-	assert.Equal(t, len(addrArrR), len_test)
+	assert.Equal(t, uint64(0x1f5b0412), addr1)
 
-	err = db.MarkAddrUsed(addrArrR[0])
-	addrArrR1, err := db.GetAddrArr()
+	addr2, err := dB.GetRandAddr()
 	assert.Equal(t, err, nil)
-	assert.Equal(t, len(addrArrR1), len_test-1)
+	assert.Equal(t, uint64(0x23de7767), addr2)
+
+	count, err := dB.NumAddrRows(addr1)
+	assert.Equal(t, err, nil)
+	assert.Equal(t, count, 1)
 }
