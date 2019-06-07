@@ -1,5 +1,5 @@
 // RequestExpand
-// go run RequestExpand.go addr.go dbAddr.go encode.go 'passwd'
+// go run RequestExpand.go addr.go dbUrl.go encode.go network.go 'passwd'
 // localhost:8090/L6X000000bmG
 package main
 
@@ -7,22 +7,17 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
 )
 
 const UrlExpand = "localhost:8090" // 12.0.0.1 (IPv6 ::1)
 const urlLen = NcharA + NcharR
 const urlLongLen = NcharA + NcharRLong
-const shardDefault = 1 << 31
 
-var passwd = ""
+// var passwd = ""
 var validLenShortUrl []int
-var dbS DBS
-
 
 func init() {
 	validLenShortUrl = []int{urlLen, urlLongLen}
-	dbS.shard = shardDefault
 }
 
 func main() {
@@ -50,23 +45,29 @@ func expandHandler(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "Error - invalid DB shard")
 		return
 	}
-	
+
 	// Lookup randExt and fullURL (given database shard)
-	passwd := os.Args[1]
-	fullURL, randDB, err := dbS.ReadUrlDB(decodeA, shard, passwd)
-	// Check saved randExt matches supplied value
+	dB, err := OpenUrlDB(shard, password())
+	if err != nil {
+		fmt.Fprintf(w, "Error accessing URL database")
+		return
+	}
+	defer dB.db.Close()
+
+	fullURL, randDB, err := dB.ReadUrlDB(decodeA)
 	if err != nil {
 		// log.Fatal("RequestExpand: error expanding URL: ", shortUrl)
 		fmt.Fprintf(w, "Error - full URL not found")
 		return
 	}
+
 	if randDB != decodeR {
 		log.Fatal("expandHandler: random extension not matched", shortUrl)
 		fmt.Fprintf(w, "Error - full URL not found")
 		return
 	}
 	fmt.Fprintf(w, fullURL)
-	// Redirect to decoded fullURL
+	// **Redirect to decoded fullURL***
 	return
 }
 
@@ -77,5 +78,3 @@ func TestExpand() error {
 	// Check w
 	return nil
 }
-
-

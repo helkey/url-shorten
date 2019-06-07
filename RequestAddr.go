@@ -1,6 +1,9 @@
 // RequestAddr
-// go run RequestAddr.go addr.go dbAddr.go encode.go 'passwd
+// go run RequestAddr.go addr.go dbAddr.go encode.go RequestShorten.go 'passwd
 //   {}: 127.0.0.1:8088/addr
+
+// run dbAddr_test.go to DROP/CREATE addr Database
+
 package main
 
 import (
@@ -9,30 +12,19 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
-	"strconv"
 	"time"
 )
 
-const UrlAddrServer = "127.0.0.1:8088" // (IPv6 ::1)
+// const UrlAddrServer = "127.0.0.1:8088" // (IPv6 ::1)
 var chAddr chan uint64
 
 func main() {
-	passwd := password()
-	dB, err := OpenDB(passwd)
-	if err != nil {
-		fmt.Println("ERR RequestAddr:OpenDB")
-		return
-	}
-	err = dB.DropTable()
-	err = dB.CreateTable()
-	fmt.Println("RequestAddr/CreateTable: ", err)
-	
 	// rand.Seed(time.Now().UnixNano()) // initialize random seed
 	rand.Seed(0) // initialize deterministic seed
 	const gochanDepth = 1
 	chAddr = make(chan uint64, gochanDepth)
 	go sendBaseAddr(chAddr)
-	
+
 	http.HandleFunc("/addr", addrHandle)
 	log.Fatal(http.ListenAndServe(UrlAddrServer, nil))
 }
@@ -47,17 +39,9 @@ func addrHandle(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("RequestAddr: addrHandle")
 	addr := <-chAddr
 	fmt.Println("RequestAddr: addr=", addr)
-	addrShard := addrShardToStr(addr, shard)
+	addrShard := AddrShardToStr(addr, shard)
 	fmt.Fprintf(w, addrShard)
 	shard = (shard + 1) % Nshard
-}
-
-func addrShardToStr(addr uint64, shard int) string {
-	// Add shard to address space
-	// addrShard := addr<<NshardBits | uint64(shard)
-	// addrShardStr := strconv.Itoa(int(addrShard))
-	addrShardStr := strconv.Itoa(int(addr)) + "/" + strconv.Itoa(shard)
-	return addrShardStr
 }
 
 // Queue base addresses for assignment using
@@ -65,7 +49,7 @@ func addrShardToStr(addr uint64, shard int) string {
 func sendBaseAddr(chBase chan uint64) {
 	for {
 		const SLEEPSEC = 1
-		
+
 		// Open/close on each iteration to be
 		// more robust to DB interruption
 		passwd := password()
@@ -75,17 +59,23 @@ func sendBaseAddr(chBase chan uint64) {
 			time.Sleep(SLEEPSEC * time.Second)
 			continue
 		}
+		fmt.Println("ReqAddr: getRandAddr")
 		addr, err := dB.GetRandAddr()
-		fmt.Println("RequestAddr: GEN addr", addr)
+		if err != nil {
+			fmt.Println("ERR ReqAddr: getRandAddr")
+			time.Sleep(SLEEPSEC * time.Second)
+			continue
+		}
+		fmt.Println("ReqAddr SEND: ", addr)
 		dB.db.Close()
-		
+
 		if err != nil {
 			fmt.Println("ERR RequestAddr: ", err)
 			time.Sleep(SLEEPSEC * time.Second)
 			continue
 		}
 		// Blocks when gochan buffer full
-		fmt.Println("RequestAddr: send addr", addr)
+		fmt.Println("RequestAddr: addr", addr)
 		chAddr <- addr
 	}
 }
@@ -96,5 +86,3 @@ func password() string {
 	}
 	return os.Args[1]
 }
-
-

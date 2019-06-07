@@ -1,5 +1,5 @@
 // dbAddr.go
-// go test dbAddr_test ***.go encode.go 'passwd'
+// go run dbUrl.go
 
 // pgstart (WSL)  # Starting PostgreSQL 10 database server
 // runpg (WSL)    # log into the psql prompt
@@ -10,8 +10,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	// "log"
-	"os"
 
 	_ "github.com/lib/pq"
 )
@@ -24,22 +22,12 @@ const (
 	dbName = "postgres"
 )
 
-// Database object pointer, shard
-// type DB struct {
-//	*sql.DB
-// }
-
-type DBS struct {
-	db     *sql.DB
-	shard  int
-	passwd string
+type DB struct {
+	db *sql.DB
 }
 
 //
-func (dbS *DBS) OpenDB(shard int, passwd string) error {
-	if (passwd == dbS.passwd) && (shard == dbS.shard) {
-		return nil
-	}
+func OpenUrlDB(shard int, passwd string) (DB, error) {
 	dbInfo := fmt.Sprintf("host=%s port=%d user=%s "+
 		"password=%s dbname=%s sslmode=disable",
 		host, port, user, passwd, dbName)
@@ -48,13 +36,9 @@ func (dbS *DBS) OpenDB(shard int, passwd string) error {
 		e := "CreateTable: not able to connect to database"
 		fmt.Println(e)
 		// log.Fatal(e)
-		return errors.New(e)
+		return DB{}, errors.New(e)
 	}
-
-	dbS.db = db
-	dbS.shard = shard
-	dbS.passwd = passwd
-	return nil
+	return DB{db}, nil
 }
 
 /* Multiple tables to act as DB shards
@@ -67,19 +51,18 @@ func CreateTables(passwd string) error {
 		}
 		passwd = os.Args[1]
 	}
-	dbS := DBS{}
-	err := dbS.OpenDB(0, passwd)
+	dB, err := OpenDB(0, passwd)
 	if err != nil {
 		fmt.Println("1:", err)
 		return err
 	}
 
-	err = dbS.CreateTable(name)
-	// err = DropTable(dbS.db)
+	err = dB.CreateTable(name)
+	err = dB.DropTable(name)
 	return err
 } */
 
-func (dbS DBS) DropTable(name string) (err error) {
+func (dB DB) DropTable(name string) (err error) {
 	// Recover from db.Exec() panic
 	defer func() {
 		if r := recover(); r != nil {
@@ -89,7 +72,7 @@ func (dbS DBS) DropTable(name string) (err error) {
 	}()
 
 	sqlTbl := `DROP TABLE url;`
-	_, err = dbS.db.Exec(sqlTbl)
+	_, err = dB.db.Exec(sqlTbl)
 	if err != nil {
 		fmt.Println("DropTable:", err)
 	}
@@ -97,7 +80,7 @@ func (dbS DBS) DropTable(name string) (err error) {
 }
 
 // Create new DB shard / table
-func (dbS DBS) CreateTable(name string) (err error) {
+func (dB DB) CreateTable(name string) (err error) {
 	// Recover from db.Exec() panic
 	defer func() {
 		if r := recover(); r != nil {
@@ -107,27 +90,15 @@ func (dbS DBS) CreateTable(name string) (err error) {
 	}()
 
 	sqlTbl := fmt.Sprintf(`CREATE TABLE %s (addr INTEGER PRIMARY KEY, randext INT, fullurl TEXT);`, name)
-	_, err = dbS.db.Exec(sqlTbl)
+	_, err = dB.db.Exec(sqlTbl)
 	if err != nil {
 		fmt.Println("3:", err)
 	}
 	return
 }
 
-// New URL database connection
-func NewURLconn(shard int) (DBS, error) {
-	const defaultShard, defaultPass = 9999, ""
-	dbS := DBS{nil, defaultShard, defaultPass}
-	if len(os.Args) <= 1 {
-		return dbS, errors.New("NewDBconn error: password not set")
-	}
-	passwd := os.Args[1]
-	err := dbS.OpenDB(shard, passwd)
-	return dbS, err
-}
-
 // Save URL mapping to DB
-func (dbS DBS) SaveUrlDB(fullUrl string, addr uint64, randExt int, shard int, passwd string) (err error) {
+func (dB DB) SaveUrlDB(fullUrl string, addr uint64, randExt int) (err error) {
 	// Recover from db.Exec() panic
 	defer func() {
 		if r := recover(); r != nil {
@@ -136,13 +107,9 @@ func (dbS DBS) SaveUrlDB(fullUrl string, addr uint64, randExt int, shard int, pa
 		}
 	}()
 
-	err = dbS.OpenDB(shard, passwd)
-	if err != nil {
-		return errors.New("SaveUrl: database connection failed")
-	}
 	sqlIns := `INSERT INTO url (addr, randext, fullurl) VALUES ($1, $2, $3);`
 	fmt.Println(sqlIns, addr, randExt, fullUrl)
-	_, err = dbS.db.Exec(sqlIns, addr, randExt, fullUrl)
+	_, err = dB.db.Exec(sqlIns, addr, randExt, fullUrl)
 	if err != nil {
 		return errors.New("SaveUrl: error saving to 'url' DB")
 	}
@@ -150,7 +117,7 @@ func (dbS DBS) SaveUrlDB(fullUrl string, addr uint64, randExt int, shard int, pa
 }
 
 //
-func (dbS DBS) ReadUrlDB(addr uint64, shard int, passwd string) (fullUrl string, randExt int, err error) {
+func (dB DB) ReadUrlDB(addr uint64) (fullUrl string, randExt int, err error) {
 	// Recover from db.Exec() panic
 	defer func() {
 		if r := recover(); r != nil {
@@ -159,14 +126,8 @@ func (dbS DBS) ReadUrlDB(addr uint64, shard int, passwd string) (fullUrl string,
 		}
 	}()
 
-	err = dbS.OpenDB(shard, passwd)
-	if err != nil {
-		err = errors.New("ReadUrlDB: database connection failed")
-		return
-	}
-
 	sqlSel := fmt.Sprintf(`SELECT randext, fullurl FROM url WHERE addr = %d;`, addr)
-	row := dbS.db.QueryRow(sqlSel)
+	row := dB.db.QueryRow(sqlSel)
 	err = row.Scan(&randExt, &fullUrl)
 	if err != nil {
 		err = errors.New("ReadUrlDB: URL not found")
@@ -174,8 +135,6 @@ func (dbS DBS) ReadUrlDB(addr uint64, shard int, passwd string) (fullUrl string,
 	fmt.Println(randExt, fullUrl)
 	return
 }
-
-
 
 /* const FullUrl = "http://Full.Url"
 const Addr, RandExt = uint64(0xaaaa), 0xcccc
@@ -189,23 +148,23 @@ func TestSaveurl() error {
 	const isGrayList = false
 	shortUrl, _ := encode(isGrayList, Addr, RandExt, Shard, NcharR)
 	fmt.Println("TestSaveurl shortURL: ", shortUrl)
-	
-	dbS, err := NewDBconn(Shard)
+
+	dB, err := NewDBconn(Shard)
 	if err != nil {
 		return err
 	}
-	dbS.DropTable(tableName)
-	dbS.CreateTable(tableName)
+	dB.DropTable(tableName)
+	dB.CreateTable(tableName)
 	if err != nil {
 		return err
 	}
 
-	err = dbS.SaveUrl(FullUrl, Addr, RandExt, Shard, dbS.passwd)
+	err = dB.SaveUrl(FullUrl, Addr, RandExt)
 	if err != nil {
 		return err
 	}
 
-	fullUrlR, randExtR, err := dbS.ReadUrlDB(Addr, Shard, dbS.passwd)
+	fullUrlR, randExtR, err := dB.ReadUrlDB(Addr)
 	fmt.Println(fullUrlR, randExtR, err)
 	return err
 } */

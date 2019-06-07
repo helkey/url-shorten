@@ -15,10 +15,6 @@ import (
 	"time"
 )
 
-func init() {
-	rand.Seed(time.Now().UnixNano()) // initialize random seed
-}
-
 /* func main() {
 	testAddr()
 }*/
@@ -107,21 +103,30 @@ func baseAddrFromServer(urlAddrServer string) (AddrShard, error) {
 	return addrShard, err
 }
 
+const shardDelimit = "/"
+
+func AddrShardToStr(addr uint64, shard int) string {
+	// Add shard to address space
+	// addrShard := addr<<NshardBits | uint64(shard)
+	// addrShardStr := strconv.Itoa(int(addrShard))
+	addrShardStr := strconv.Itoa(int(addr)) + shardDelimit + strconv.Itoa(shard)
+	return addrShardStr
+}
+
 // Convert addrShard into addr and shard
 func sepAddrShard(addrShardStr string) (addrShard AddrShard, err error) {
-	iSep := strings.Index(addrShardStr,"/")
+	iSep := strings.Index(addrShardStr, shardDelimit)
 	if iSep < 0 {
 		return
 	}
-	addrShard.addr, err = strconv.Atoi(addrShardStr[:iSep])
+	addr, err := strconv.Atoi(addrShardStr[:iSep])
+	addrShard.addr = uint64(addr)
 	if err != nil {
 		return
 	}
 	addrShard.shard, err = strconv.Atoi(addrShardStr[:iSep])
-	// addrShard.shard = shard
 	return
 }
-
 
 var getBaseAddrServe = baseAddrFromServer
 
