@@ -14,19 +14,6 @@ import (
 	_ "github.com/lib/pq"
 )
 
-const (
-	dbType = "postgres"
-	host   = "localhost"
-	port   = 5433
-	user   = "postgres"
-	dbName = "postgres"
-)
-
-type DB struct {
-	db *sql.DB
-}
-
-//
 func OpenUrlDB(shard int, passwd string) (DB, error) {
 	dbInfo := fmt.Sprintf("host=%s port=%d user=%s "+
 		"password=%s dbname=%s sslmode=disable",
@@ -41,46 +28,8 @@ func OpenUrlDB(shard int, passwd string) (DB, error) {
 	return DB{db}, nil
 }
 
-/* Multiple tables to act as DB shards
-func CreateTables(passwd string) error {
-	const name = "url"
-	if passwd == "" {
-		if len(os.Args) <= 1 {
-			e := "CreateTable: need Database password"
-			return errors.New(e)
-		}
-		passwd = os.Args[1]
-	}
-	dB, err := OpenDB(0, passwd)
-	if err != nil {
-		fmt.Println("1:", err)
-		return err
-	}
-
-	err = dB.CreateTable(name)
-	err = dB.DropTable(name)
-	return err
-} */
-
-func (dB DB) DropTable(name string) (err error) {
-	// Recover from db.Exec() panic
-	defer func() {
-		if r := recover(); r != nil {
-			e := "CreateTable: can't drop database table"
-			err = errors.New(e)
-		}
-	}()
-
-	sqlTbl := `DROP TABLE url;`
-	_, err = dB.db.Exec(sqlTbl)
-	if err != nil {
-		fmt.Println("DropTable:", err)
-	}
-	return err
-}
-
 // Create new DB shard / table
-func (dB DB) CreateTable(name string) (err error) {
+func (dB DB) CreateUrlTable() (err error) {
 	// Recover from db.Exec() panic
 	defer func() {
 		if r := recover(); r != nil {
@@ -89,8 +38,7 @@ func (dB DB) CreateTable(name string) (err error) {
 		}
 	}()
 
-	sqlTbl := fmt.Sprintf(`CREATE TABLE %s (addr INTEGER PRIMARY KEY, randext INT, fullurl TEXT);`, name)
-	_, err = dB.db.Exec(sqlTbl)
+	_, err = dB.db.Exec(`CREATE TABLE url (addr INTEGER PRIMARY KEY, randext INT, fullurl TEXT);`)
 	if err != nil {
 		fmt.Println("3:", err)
 	}

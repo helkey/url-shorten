@@ -1,19 +1,7 @@
-// RequestShorten
-// go run RequestShorten.go addr.go dbUrl.go encode.go 'passwd
-
-// "localhost:8086/create" (working WSL)
-// "localhost:8086/create/?source=&url=http://FullURL"
+// network.go
 
 package main
 
-import (
-	"log"
-	"os"
-)
-
-func password() string {
-	if len(os.Args) <= 1 {
-		log.Fatal("Supply DB password")
-	}
-	return os.Args[1]
-}
+const UrlShorten = "localhost:8086"    // 12.0.0.1 (IPv6 ::1)
+const UrlAddrServer = "127.0.0.1:8088" // (IPv6 ::1)
+const UrlExpand = "localhost:8090"     // 12.0.0.1 (IPv6 ::1)

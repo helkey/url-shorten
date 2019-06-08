@@ -9,47 +9,45 @@ import (
 	"net/http"
 )
 
-const UrlExpand = "localhost:8090" // 12.0.0.1 (IPv6 ::1)
 const urlLen = NcharA + NcharR
 const urlLongLen = NcharA + NcharRLong
 
-// var passwd = ""
 var validLenShortUrl []int
 
 func init() {
 	validLenShortUrl = []int{urlLen, urlLongLen}
 }
 
-func main() {
+/* func main() {
 	// http.HandleFunc("/create", expandHandler)
 	http.HandleFunc("/", expandHandler)
 	log.Fatal(http.ListenAndServe(UrlExpand, nil))
-}
+} */
 
 func expandHandler(w http.ResponseWriter, r *http.Request) {
 	shortUrl := r.URL.Path[1:]
 	fmt.Println("expand: ", shortUrl)
-	fmt.Fprintf(w, "expand: ", shortUrl)
+	fmt.Fprint(w, "expand: ", shortUrl)
 
 	// Check shortURL length matches all historically valid values
 	fmt.Println(len(shortUrl), urlLen, urlLongLen)
 	if (len(shortUrl) != urlLen) && (len(shortUrl) != urlLongLen) {
 		// log.Fatal("RequestExpand err: invalid shortened URL length: ", shortUrl)
-		fmt.Fprintf(w, "Error - invalid shortened URL")
+		fmt.Fprint(w, "Error - invalid shortened URL")
 		return
 	}
 	// Decode short URL components
 	decodeA, decodeR, shard := DecodeURL("oxABCabs0123") // randSlice=1521
 	if shard >= Nshard {
 		log.Fatal("RequestExpand error: invalid DB shard", shortUrl)
-		fmt.Fprintf(w, "Error - invalid DB shard")
+		fmt.Fprint(w, "Error - invalid DB shard")
 		return
 	}
 
 	// Lookup randExt and fullURL (given database shard)
 	dB, err := OpenUrlDB(shard, password())
 	if err != nil {
-		fmt.Fprintf(w, "Error accessing URL database")
+		fmt.Fprint(w, "Error accessing URL database")
 		return
 	}
 	defer dB.db.Close()

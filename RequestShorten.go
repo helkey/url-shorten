@@ -12,29 +12,26 @@ import (
 	"net/http"
 )
 
-const UrlShorten = "localhost:8086"    // 12.0.0.1 (IPv6 ::1)
-const UrlAddrServer = "127.0.0.1:8088" // (IPv6 ::1)
+var chAddrSh = make(chan AddrShard)
 
-var chAddr = make(chan AddrShard)
-
-func main() {
+/* func main() {
 	// TestShorten()
 	// return
 
 	// Set up channel to supply channel addresses
 	// fmt.Println("RequestShorten: go chan 'getAddr'")
-	go getAddr(UrlAddrServer, chAddr)
+	go getAddr(UrlAddrServer, chAddrSh)
 	// dbS.shard = 1 << 31 // initialize to unused value
 
 	fmt.Println("RequestShorten/create")
 	http.HandleFunc("/", shortenHandler)
 	log.Fatal(http.ListenAndServe(UrlShorten, nil))
-}
+} */
 
 func shortenHandler(w http.ResponseWriter, r *http.Request) {
 	const header = "create/?source=&url=" // header before full URL
 	path := r.URL.Path
-	fmt.Fprintf(w, "shorten", path)
+	fmt.Fprint(w, "shorten", path)
 	if (len(path) <= len(header)) || (path[:len(header)] != header) {
 		// Argument too short to contain URL
 		e := "RequestShorten - invalid request: " + path
@@ -44,16 +41,16 @@ func shortenHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	fullUrl := path[:len(header)]
-	fmt.Fprintf(w, "shorten ", path, fullUrl)
+	fmt.Fprint(w, "shorten ", path, fullUrl)
 	return
 
-	addrShard := <-chAddr
+	addrShard := <-chAddrSh
 	addr := addrShard.addr
 	shard := addrShard.shard
 	shortUrl, randExt, err := EncodeURL(fullUrl, addr, shard) // encode.go
 	if err != nil {
 		log.Fatal("shortenHandler: error shortinging URL", fullUrl)
-		fmt.Fprintf(w, "error shortening URL")
+		fmt.Fprint(w, "error shortening URL")
 		return
 	}
 

@@ -1,10 +1,11 @@
 // Addr_test
-// go test addr_test.go addr.go encode.go
+// go test addr_test.go addr.go encode.go -args 'passwd
 
 package main
 
 import (
 	"github.com/stretchr/testify/assert"
+	"math/rand"
 	"testing"
 	"time"
 )
@@ -15,12 +16,16 @@ var result = []uint64{1032, 1026, 1027, 1024, 1029, 1031, 1025, 1030, 1033, 1028
 
 func TestAddr(t *testing.T) {
 	// rand.Seed(time.Now().UnixNano()) // initialize random seed
+	addrShard, _ := sepAddrShard("123456/7")
+	assert.Equal(t, 123456, int(addrShard.addr))
+	assert.Equal(t, 7, int(addrShard.shard))
+
 	rand.Seed(0) // const seed for repeatible test results
+	addrShard, err := baseAddrFromServer(UrlAddrServer)
+	fmt.Println("addr", addrShard.addr, "shard", addrShard.shard, err)
+	// LOOK at MockServer, run off real server instead
 
-	addrShard := sepAddrShard("123456/7")
-	assert.Equal(t, 123456, addrShard.addr)
-	assert.Equal(t, 7, addrShard.shard)
-
+	rand.Seed(0) // const seed for repeatible test results
 	chAddrM := MockServer(0)
 	const sleepMs = 10 // avoid race condition between channels
 	const nIter = 30

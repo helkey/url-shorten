@@ -1,5 +1,5 @@
 // dbAddr.go
-// go run dbAddr.go addr.go encode.go 'passwd'
+// go run dbAddr.go addr.go db.go encode.go 'passwd'
 
 // pgstart (WSL)  # Starting PostgreSQL 10 database server
 // runpg (WSL)    # log into the psql prompt
@@ -7,84 +7,27 @@
 package main
 
 import (
-	"database/sql"
 	"errors"
 	"fmt"
 	"math/rand"
 	"time"
-	
+
 	_ "github.com/lib/pq"
 )
 
-const (
-	dbType = "postgres"
-	host   = "localhost"
-	port   = 5433
-	user   = "postgres"
-	dbName = "postgres"
-)
-
-type DB struct {
-	db *sql.DB
-}
-
-func OpenDB(passwd string) (DB, error) {
-	dbInfo := fmt.Sprintf("host=%s port=%d user=%s "+
-		"password=%s dbname=%s sslmode=disable",
-		host, port, user, passwd, dbName)
-	db, err := sql.Open(dbType, dbInfo)
-	if err != nil {
-		e := "dbAddr: not able to connect to database"
-		return DB{}, errors.New(e)
-	}
-	return DB{db}, nil
-}
-
-func (dB DB) DropTable() (err error) {
-	// Recover from db.Exec() panic
-	defer func() {
-		if r := recover(); r != nil {
-			e := "CreateTable: can't drop database table"
-			err = errors.New(e)
-		}
-	}()
-
-	fmt.Println("DropTable")
-	_, err = dB.db.Exec(`DROP TABLE addrs;`)
-	fmt.Println("Table dropped?")
-	if err != nil {
-		fmt.Println("dbAddr: table 'addrs' not dropped", err)
-	}
-	return err
-}
-
-func (dB DB) CreateTable() (err error) {
-	// Recover from db.Exec() panic
-	defer func() {
-		if r := recover(); r != nil {
-			e := "dbAddr: can't create database table"
-			err = errors.New(e)
-		}
-	}()
-
-	_, err = dB.db.Exec(`CREATE TABLE addrs (addr INTEGER PRIMARY KEY, avail BOOL);`)
-	if err != nil {
-		fmt.Println("dbAddr/createtable: ", err)
-	}
-	return
-}
-
-
 // Select random address. Return err if can't access address DB.
 func (dB DB) GetRandAddr() (addr uint64, err error) {
-	for addr = uint64(rand.Intn(Nrange)); ; {
+	for {
+		addr = uint64(rand.Intn(Nrange))
 		var count int
+		fmt.Println(addr)
 		count, err = dB.NumAddrRows(addr)
 		if err != nil {
 			fmt.Println("ERR dbAddr/NumAddrRows")
 			return
 		}
-		// Select again if random addr not avail
+		fmt.Println(count, addr)
+		// If rand addr avail, save to DB, wait, check for concurrent selection
 		if count == 0 {
 			const NOTAVAIL = false
 			err = dB.SaveAddrDB(addr, NOTAVAIL)
@@ -101,11 +44,12 @@ func (dB DB) GetRandAddr() (addr uint64, err error) {
 				fmt.Println("ERR dbAddr/NumAddrRows - 2")
 				return
 			}
-			if (count == 1) {
+			if count == 1 {
 				return // successfully selected rand addr
 			}
 		}
-			
+		// Otherwise try another rand addr
+
 	}
 
 }
@@ -140,5 +84,3 @@ func (dB DB) NumAddrRows(addr uint64) (nAvail int, err error) {
 	err = row.Scan(&nAvail)
 	return
 }
-
-

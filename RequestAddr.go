@@ -1,5 +1,5 @@
 // RequestAddr
-// go run RequestAddr.go addr.go dbAddr.go encode.go RequestShorten.go 'passwd
+// go run RequestAddr.go addr.go db.go dbAddr.go encode.go RequestShorten.go 'passwd
 //   {}: 127.0.0.1:8088/addr
 
 // run dbAddr_test.go to DROP/CREATE addr Database
@@ -11,11 +11,10 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
-	"os"
+	// "os"
 	"time"
 )
 
-// const UrlAddrServer = "127.0.0.1:8088" // (IPv6 ::1)
 var chAddr chan uint64
 
 func main() {
@@ -40,7 +39,7 @@ func addrHandle(w http.ResponseWriter, r *http.Request) {
 	addr := <-chAddr
 	fmt.Println("RequestAddr: addr=", addr)
 	addrShard := AddrShardToStr(addr, shard)
-	fmt.Fprintf(w, addrShard)
+	fmt.Fprint(w, addrShard)
 	shard = (shard + 1) % Nshard
 }
 
@@ -53,7 +52,7 @@ func sendBaseAddr(chBase chan uint64) {
 		// Open/close on each iteration to be
 		// more robust to DB interruption
 		passwd := password()
-		dB, err := OpenDB(passwd)
+		dB, err := OpenAddrDB(passwd)
 		if err != nil {
 			fmt.Println("ERR RequestAddr: OpenDB")
 			time.Sleep(SLEEPSEC * time.Second)
@@ -78,11 +77,4 @@ func sendBaseAddr(chBase chan uint64) {
 		fmt.Println("RequestAddr: addr", addr)
 		chAddr <- addr
 	}
-}
-
-func password() string {
-	if len(os.Args) <= 1 {
-		log.Fatal("Supply DB password")
-	}
-	return os.Args[1]
 }

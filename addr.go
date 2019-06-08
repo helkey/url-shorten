@@ -57,6 +57,7 @@ func getAddr(urlAddrServer string, chAddr chan AddrShard) {
 func getBaseAddr(urlAddrServer string, chBase chan AddrShard) {
 	for {
 		// Request base address range from server
+		// getBaseAddrServe == baseAddrFromServer (except during testing)
 		baseShard, err := getBaseAddrServe(urlAddrServer)
 		if err != nil {
 			// Set timeout: Retry address server until responds
@@ -117,14 +118,14 @@ func AddrShardToStr(addr uint64, shard int) string {
 func sepAddrShard(addrShardStr string) (addrShard AddrShard, err error) {
 	iSep := strings.Index(addrShardStr, shardDelimit)
 	if iSep < 0 {
-		return
+		return addrShard, errors.New("Err addr: delimiter not found")
 	}
 	addr, err := strconv.Atoi(addrShardStr[:iSep])
-	addrShard.addr = uint64(addr)
 	if err != nil {
 		return
 	}
-	addrShard.shard, err = strconv.Atoi(addrShardStr[:iSep])
+	addrShard.addr = uint64(addr)
+	addrShard.shard, err = strconv.Atoi(addrShardStr[iSep+1:])
 	return
 }
 

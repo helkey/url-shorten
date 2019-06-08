@@ -1,11 +1,12 @@
 // dbAddr_test.go
-// go test dbAddr_test.go dbAddr.go addr.go encode.go -args 'passwd
+// go test dbAddr_test.go addr.go db.go dbAddr.go dbDROP.go -args 'passwd
+// COULD DESTRY PRODUCTION DATABASE!!!
+// DONT run this in same location as Prod DB
 
 package main
 
 import (
 	"math/rand"
-	"os"
 	"testing"
 
 	_ "github.com/lib/pq"
@@ -13,31 +14,27 @@ import (
 )
 
 func init() {
-	rand.Seed(0) // pick non-random seed
 }
 
-const FullUrl = "http://Full.Url"
-const Addr, RandExt = uint64(0xaaaa), 0xcccc
-const Shard = 3
+func TestDbaddr(t *testing.T) {
+	rand.Seed(0) // pick non-random seed
 
-func TestAddr(t *testing.T) {
-	passwd := os.Args[1]
-	dB, err := OpenDB(passwd)
-	assert.Equal(t, err, nil)
-	err = dB.DropTable()
-	assert.Equal(t, err, nil)
-	err = dB.CreateTable()
-	assert.Equal(t, err, nil)
+	dB, err := OpenAddrDB(password())
+	assert.Equal(t, nil, err)
+	err = dB.DropAddrTable()
+	assert.Equal(t, nil, err)
+	err = dB.CreateAddrTable()
+	assert.Equal(t, nil, err)
 
 	addr1, err := dB.GetRandAddr()
-	assert.Equal(t, err, nil)
+	assert.Equal(t, nil, err)
 	assert.Equal(t, uint64(0x1f5b0412), addr1)
 
 	addr2, err := dB.GetRandAddr()
-	assert.Equal(t, err, nil)
+	assert.Equal(t, nil, err)
 	assert.Equal(t, uint64(0x23de7767), addr2)
 
 	count, err := dB.NumAddrRows(addr1)
-	assert.Equal(t, err, nil)
+	assert.Equal(t, nil, err)
 	assert.Equal(t, count, 1)
 }
