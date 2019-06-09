@@ -1,8 +1,6 @@
 // RequestAddr
-// go run RequestAddr.go addr.go db.go dbAddr.go encode.go RequestShorten.go 'passwd
+// go run RequestAddr.go addr.go db.go dbAddr.go encode.go network.go 'passwd
 //   {}: 127.0.0.1:8088/addr
-
-// run dbAddr_test.go to DROP/CREATE addr Database
 
 package main
 
@@ -25,6 +23,7 @@ func main() {
 	go sendBaseAddr(chAddr)
 
 	http.HandleFunc("/addr", addrHandle)
+	// -> ListenAndServeTLS for https
 	log.Fatal(http.ListenAndServe(UrlAddrServer, nil))
 }
 

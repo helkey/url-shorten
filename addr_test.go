@@ -15,12 +15,10 @@ var result = []uint64{1032, 1026, 1027, 1024, 1029, 1031, 1025, 1030, 1033, 1028
 	3079, 3078, 3081, 3073, 3072, 3075, 3076, 3080, 3077, 3074}
 
 func TestAddr(t *testing.T) {
-	// rand.Seed(time.Now().UnixNano()) // initialize random seed
 	addrShard, _ := sepAddrShard("123456/7")
 	assert.Equal(t, 123456, int(addrShard.addr))
 	assert.Equal(t, 7, int(addrShard.shard))
 
-	rand.Seed(0) // const seed for repeatible test results
 	addrShard, err := baseAddrFromServer(UrlAddrServer)
 	fmt.Println("addr", addrShard.addr, "shard", addrShard.shard, err)
 	// LOOK at MockServer, run off real server instead

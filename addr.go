@@ -76,8 +76,8 @@ func getBaseAddr(urlAddrServer string, chBase chan AddrShard) {
 	}
 }
 
-var shardMask = uint64(Nshard) - 1
-var baseMask = ^shardMask
+// var shardMask = uint64(Nshard) - 1
+// var baseMask = ^shardMask
 
 // Single request for base address, database shard from remote address server
 //   Note: specify timeout (don't use default http request client)
@@ -86,10 +86,13 @@ func baseAddrFromServer(urlAddrServer string) (AddrShard, error) {
 	var netClient = &http.Client{
 		Timeout: time.Second * requestTimeout,
 	}
-	resp, err := netClient.Get(urlAddrServer)
+	const addrAPI = "/addr"
+	// -> https service
+	addrApiUrl := fmt.Sprintf("http://%s/addr", urlAddrServer)
+	resp, err := netClient.Get(addrApiUrl)
 	if err != nil {
 		// Write this to log file
-		return AddrShard{}, errors.New("Failed netClient.Get")
+		return AddrShard{}, err // errors.New("Failed netClient.Get")
 	}
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
