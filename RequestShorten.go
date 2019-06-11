@@ -15,6 +15,8 @@ import (
 var chAddrSh = make(chan AddrShard)
 
 func main() {
+	InitUrlTable()
+
 	// Set up channel to supply channel addresses
 	fmt.Println("RequestShorten: go chan 'getAddr'")
 	go getAddr(UrlAddrServer, chAddrSh)

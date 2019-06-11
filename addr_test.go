@@ -1,13 +1,15 @@
 // Addr_test
-// go test addr_test.go addr.go encode.go -args 'passwd
+// go test addr_test.go addr.go encode.go network.go
 
 package main
 
 import (
-	"github.com/stretchr/testify/assert"
+	"fmt"
 	"math/rand"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 var result = []uint64{1032, 1026, 1027, 1024, 1029, 1031, 1025, 1030, 1033, 1028,

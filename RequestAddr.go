@@ -1,5 +1,5 @@
 // RequestAddr
-// go run RequestAddr.go addr.go db.go dbAddr.go encode.go network.go 'passwd
+// go run RequestAddr.go addr.go db.go dbAddr.go dbDrop.go encode.go network.go 'passwd
 //   {}: 127.0.0.1:8088/addr
 
 package main
@@ -16,6 +16,13 @@ import (
 var chAddr chan uint64
 
 func main() {
+	dB, _ := OpenAddrDB(password())
+	nRows, _ := dB.NumRowsDB()
+	fmt.Printf("addr DB has %v rows\n", nRows)
+	dB.DropAddrTable()
+	dB.CreateAddrTable()
+	
+	
 	// rand.Seed(time.Now().UnixNano()) // initialize random seed
 	rand.Seed(0) // initialize deterministic seed
 	const gochanDepth = 1
@@ -33,38 +40,34 @@ var iAddr = 0     // pointer to current address range
 // Get base address from go channel buffer
 // Round-robin database shard allocation
 func addrHandle(w http.ResponseWriter, r *http.Request) {
-	// fmt.Fprintf(w, "addrHandle")
-	fmt.Println("RequestAddr: addrHandle")
+	// fmt.Println("RequestAddr: addrHandle")
 	addr := <-chAddr
-	fmt.Println("RequestAddr: addr=", addr)
 	addrShard := AddrShardToStr(addr, shard)
+	shard = (shard + 1) % Nshard // cycle for next request
+	fmt.Println("RequestAddr:   ", addrShard)
 	fmt.Fprint(w, addrShard)
-	shard = (shard + 1) % Nshard
 }
 
 // Queue base addresses for assignment using
 //   buffered go channel as queue.
 func sendBaseAddr(chBase chan uint64) {
+	const SLEEPSEC = 1
+	passwd := password()
 	for {
-		const SLEEPSEC = 1
-
-		// Open/close on each iteration to be
-		// more robust to DB interruption
-		passwd := password()
+		// Open/close DB on each iteration
 		dB, err := OpenAddrDB(passwd)
 		if err != nil {
 			fmt.Println("ERR RequestAddr: OpenDB")
 			time.Sleep(SLEEPSEC * time.Second)
 			continue
 		}
-		fmt.Println("ReqAddr: getRandAddr")
+		// fmt.Println("ReqAddr: getRandAddr")
 		addr, err := dB.GetRandAddr()
 		if err != nil {
 			fmt.Println("ERR ReqAddr: getRandAddr")
 			time.Sleep(SLEEPSEC * time.Second)
 			continue
 		}
-		fmt.Println("ReqAddr SEND: ", addr)
 		dB.db.Close()
 
 		if err != nil {
@@ -73,7 +76,7 @@ func sendBaseAddr(chBase chan uint64) {
 			continue
 		}
 		// Blocks when gochan buffer full
-		fmt.Println("RequestAddr: addr", addr)
+		fmt.Println("ReqAddr QUEUE: ", addr)
 		chAddr <- addr
 	}
 }

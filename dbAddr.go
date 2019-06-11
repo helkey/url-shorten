@@ -7,6 +7,7 @@
 package main
 
 import (
+	"database/sql"
 	"errors"
 	"fmt"
 	"math/rand"
@@ -15,18 +16,45 @@ import (
 	_ "github.com/lib/pq"
 )
 
+func OpenAddrDB(passwd string) (DB, error) {
+	dbInfo := fmt.Sprintf("host=%s port=%d user=%s "+
+		"password=%s dbname=%s sslmode=disable",
+		host, port, user, passwd, dbName)
+	db, err := sql.Open(dbType, dbInfo)
+	if err != nil {
+		e := "dbAddr: not able to connect to database"
+		return DB{}, errors.New(e)
+	}
+	return DB{db}, nil
+}
+
+func (dB DB) CreateAddrTable() (err error) {
+	// Recover from db.Exec() panic
+	defer func() {
+		if r := recover(); r != nil {
+			e := "dbAddr: can't create database table"
+			err = errors.New(e)
+		}
+	}()
+
+	_, err = dB.db.Exec(`CREATE TABLE addrs (id BIGSERIAL PRIMARY KEY, addr BIGINT, avail BOOL);`)
+	if err != nil {
+		fmt.Println("dbAddr/createtable: ", err)
+	}
+	return
+}
+
 // Select random address. Return err if can't access address DB.
 func (dB DB) GetRandAddr() (addr uint64, err error) {
+	const SLEEPTIME = 1 // sec
 	for {
 		addr = uint64(rand.Intn(Nrange))
 		var count int
-		fmt.Println(addr)
-		count, err = dB.NumAddrRows(addr)
+		count, err = dB.NumRowsAddr(addr)
 		if err != nil {
 			fmt.Println("ERR dbAddr/NumAddrRows")
 			return
 		}
-		fmt.Println(count, addr)
 		// If rand addr avail, save to DB, wait, check for concurrent selection
 		if count == 0 {
 			const NOTAVAIL = false
@@ -37,9 +65,8 @@ func (dB DB) GetRandAddr() (addr uint64, err error) {
 			}
 			// Try again if addr not successfully inserted in DB,
 			//   or two processes trying to use same random addr
-			const sleepSec = 1
-			time.Sleep(sleepSec * time.Second)
-			count, err = dB.NumAddrRows(addr)
+			time.Sleep(SLEEPTIME * time.Second)
+			count, err = dB.NumRowsAddr(addr)
 			if err != nil {
 				fmt.Println("ERR dbAddr/NumAddrRows - 2")
 				return
@@ -47,9 +74,9 @@ func (dB DB) GetRandAddr() (addr uint64, err error) {
 			if count == 1 {
 				return // successfully selected rand addr
 			}
+		} else {
+			fmt.Printf("dbAddr: addr=%v NOT AVAIL\n", addr)
 		}
-		// Otherwise try another rand addr
-
 	}
 
 }
@@ -70,7 +97,9 @@ func (dB DB) SaveAddrDB(addr uint64, avail bool) (err error) {
 	return
 }
 
-func (dB DB) NumAddrRows(addr uint64) (nAvail int, err error) {
+// Number of rows with 'addr' in db
+//   (should be max=1, except for simulaneous writes of same value)
+func (dB DB) NumRowsAddr(addr uint64) (nAddr int, err error) {
 	// Recover from db.Exec() panic
 	defer func() {
 		if r := recover(); r != nil {
@@ -81,6 +110,24 @@ func (dB DB) NumAddrRows(addr uint64) (nAvail int, err error) {
 
 	// Allocate addrArr in single step
 	row := dB.db.QueryRow(`SELECT COUNT(*) FROM addrs WHERE addr = $1;`, addr)
-	err = row.Scan(&nAvail)
+	err = row.Scan(&nAddr)
+	return
+}
+
+
+// Number of rows with 'addr' in db
+//   (should be max=1, except for simulaneous writes of same value)
+func (dB DB) NumRowsDB() (nRows int, err error) {
+	// Recover from db.Exec() panic
+	defer func() {
+		if r := recover(); r != nil {
+			// e := "dbAddr: can't load addr array from database"
+			// err = errors.New(e)
+		}
+	}()
+
+	// Allocate addrArr in single step
+	row := dB.db.QueryRow(`SELECT COUNT(*) FROM addrs;`)
+	err = row.Scan(&nRows)
 	return
 }

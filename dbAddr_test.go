@@ -1,11 +1,12 @@
 // dbAddr_test.go
-// go test dbAddr_test.go addr.go db.go dbAddr.go dbDROP.go -args 'passwd
+// go test dbAddr_test.go addr.go db.go dbAddr.go dbDROP.go dbUrl.go encode.go -args 'passwd
 // COULD DESTRY PRODUCTION DATABASE!!!
 // DONT run this in same location as Prod DB
 
 package main
 
 import (
+	"fmt"
 	"math/rand"
 	"testing"
 
@@ -21,7 +22,8 @@ func TestDbaddr(t *testing.T) {
 
 	dB, err := OpenAddrDB(password())
 	assert.Equal(t, nil, err)
-	err = dB.DropAddrTable()
+	err = dB.DropTable("addrs")
+	fmt.Println(err)
 	assert.Equal(t, nil, err)
 	err = dB.CreateAddrTable()
 	assert.Equal(t, nil, err)
@@ -34,7 +36,7 @@ func TestDbaddr(t *testing.T) {
 	assert.Equal(t, nil, err)
 	assert.Equal(t, uint64(0x23de7767), addr2)
 
-	count, err := dB.NumAddrRows(addr1)
+	count, err := dB.NumRowsAddr(addr1)
 	assert.Equal(t, nil, err)
 	assert.Equal(t, count, 1)
 }

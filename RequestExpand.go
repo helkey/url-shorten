@@ -1,5 +1,5 @@
 // RequestExpand
-// go run RequestExpand.go addr.go dbUrl.go encode.go network.go 'passwd'
+// go run RequestExpand.go addr.go db.go dbAddr.go dbUrl.go dbDrop.go encode.go network.go 'passwd'
 // localhost:8090/L6X000000bmG
 package main
 
@@ -18,11 +18,10 @@ func init() {
 	validLenShortUrl = []int{urlLen, urlLongLen}
 }
 
-/* func main() {
-	// http.HandleFunc("/create", expandHandler)
+func main() {
 	http.HandleFunc("/", expandHandler)
 	log.Fatal(http.ListenAndServe(UrlExpand, nil))
-} */
+}
 
 func expandHandler(w http.ResponseWriter, r *http.Request) {
 	shortUrl := r.URL.Path[1:]

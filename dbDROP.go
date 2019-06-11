@@ -5,7 +5,6 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 
 	_ "github.com/lib/pq"
@@ -14,20 +13,38 @@ import (
 func init() {
 }
 
+func InitAddrTable() {
+	dB, _ := OpenAddrDB(password())
+	nRows, _ := dB.NumRowsDB()
+	fmt.Printf("DB 'addr' has %v rows\n", nRows)
+	dB.DropTable("addr")
+	dB.CreateAddrTable()
+}
+
+func InitUrlTable() {
+	dB, _ := OpenAddrDB(password())
+	nRows, _ := dB.NumRowsDB()
+	fmt.Printf("DB 'url' has %v rows\n", nRows)
+	dB.DropTable("url")
+	dB.CreateUrlTable()
+}
+
+
 // Drop table of address assigned
-func (dB DB) DropAddrTable() (err error) {
+func (dB DB) DropTable(name string) (err error) {
+	e := fmt.Sprintf("ERR dbDROP: table '%s' not dropped", name)
 	// Recover from db.Exec() panic
 	defer func() {
 		if r := recover(); r != nil {
-			e := "CreateTable: can't drop database table"
-			err = errors.New(e)
+			fmt.Println(e)
 		}
 	}()
 
-	fmt.Println("DROPPED TABLE addrs; CAREFUL WITH PRODUCTION TABLES!")
-	_, err = dB.db.Exec(`DROP TABLE addrs;`)
+	fmt.Printf("DROPPED TABLE %s; CAREFUL WITH PRODUCTION TABLES!\n", name)
+	_, err = dB.db.Exec(fmt.Sprintf(`DROP TABLE %s;`, name))
 	if err != nil {
-		fmt.Println("dbAddr: table 'addrs' not dropped", err)
+		fmt.Println(e, ": ", err)
 	}
 	return err
 }
+
