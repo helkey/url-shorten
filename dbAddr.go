@@ -113,21 +113,3 @@ func (dB DB) NumRowsAddr(addr uint64) (nAddr int, err error) {
 	err = row.Scan(&nAddr)
 	return
 }
-
-
-// Number of rows with 'addr' in db
-//   (should be max=1, except for simulaneous writes of same value)
-func (dB DB) NumRowsDB() (nRows int, err error) {
-	// Recover from db.Exec() panic
-	defer func() {
-		if r := recover(); r != nil {
-			// e := "dbAddr: can't load addr array from database"
-			// err = errors.New(e)
-		}
-	}()
-
-	// Allocate addrArr in single step
-	row := dB.db.QueryRow(`SELECT COUNT(*) FROM addrs;`)
-	err = row.Scan(&nRows)
-	return
-}

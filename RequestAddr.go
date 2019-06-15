@@ -1,5 +1,5 @@
 // RequestAddr
-// go run RequestAddr.go addr.go db.go dbAddr.go dbDrop.go encode.go network.go 'passwd
+// go run RequestAddr.go addr.go db.go dbAddr.go dbDrop.go dbUrl.go encode.go network.go 'passwd
 //   {}: 127.0.0.1:8088/addr
 
 package main
@@ -16,21 +16,18 @@ import (
 var chAddr chan uint64
 
 func main() {
-	dB, _ := OpenAddrDB(password())
-	nRows, _ := dB.NumRowsDB()
-	fmt.Printf("addr DB has %v rows\n", nRows)
-	dB.DropAddrTable()
-	dB.CreateAddrTable()
-	
-	
-	// rand.Seed(time.Now().UnixNano()) // initialize random seed
-	rand.Seed(0) // initialize deterministic seed
+	rand.Seed(time.Now().UnixNano()) // initialize random seed
+	if INITIALIZEDB {
+		InitAddrTable()
+		rand.Seed(0) // initialize deterministic seed
+	}
+
 	const gochanDepth = 1
 	chAddr = make(chan uint64, gochanDepth)
 	go sendBaseAddr(chAddr)
 
 	http.HandleFunc("/addr", addrHandle)
-	// -> ListenAndServeTLS for https
+	// USE ListenAndServeTLS() for https service
 	log.Fatal(http.ListenAndServe(UrlAddrServer, nil))
 }
 

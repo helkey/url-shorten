@@ -56,7 +56,7 @@ func (dB DB) SaveUrlDB(fullUrl string, addr uint64, randExt int) (err error) {
 	}()
 
 	sqlIns := `INSERT INTO url (addr, randext, fullurl) VALUES ($1, $2, $3);`
-	fmt.Println(sqlIns, addr, randExt, fullUrl)
+	fmt.Printf("INSERT (addr=%v, randext=%v, fullurl=%v)\n", addr, randExt, fullUrl)
 	_, err = dB.db.Exec(sqlIns, addr, randExt, fullUrl)
 	if err != nil {
 		return errors.New("SaveUrl: error saving to 'url' DB")
@@ -83,36 +83,3 @@ func (dB DB) ReadUrlDB(addr uint64) (fullUrl string, randExt int, err error) {
 	fmt.Println(randExt, fullUrl)
 	return
 }
-
-/* const FullUrl = "http://Full.Url"
-const Addr, RandExt = uint64(0xaaaa), 0xcccc
-const Shard = 3
-func TestSaveurl() error {
-	const tableName = "url"
-
-	// encodeA, _ := encodeAddr(addr, NcharA)
-	// randShard := (RandExt << NshardBits) | Shard
-	// encodeR, _ := encodeAddr(randShard, charR)
-	const isGrayList = false
-	shortUrl, _ := encode(isGrayList, Addr, RandExt, Shard, NcharR)
-	fmt.Println("TestSaveurl shortURL: ", shortUrl)
-
-	dB, err := NewDBconn(Shard)
-	if err != nil {
-		return err
-	}
-	dB.DropTable(tableName)
-	dB.CreateTable(tableName)
-	if err != nil {
-		return err
-	}
-
-	err = dB.SaveUrl(FullUrl, Addr, RandExt)
-	if err != nil {
-		return err
-	}
-
-	fullUrlR, randExtR, err := dB.ReadUrlDB(Addr)
-	fmt.Println(fullUrlR, randExtR, err)
-	return err
-} */

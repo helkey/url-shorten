@@ -33,7 +33,8 @@ const requestTimeout = retryInterval / 2 // set timeouts < retryInterval
 // var maxAddrOff int = (1 << NoffBit) - 1 // max offset from each base address
 var maxAddrOff int = (1 << NaddrBit) - 1 // max offset from each base address
 
-func getAddr(urlAddrServer string, chAddr chan AddrShard) {
+// Runs 'RequestShorten' context, full base addr + addr extension
+func getAddr(urlAddrServer string, chAddrSh chan AddrShard) {
 	const chDepth = 1 // channel queue depth to store lookahead base addresses
 	chBase := make(chan AddrShard, chDepth)
 	go getBaseAddr(urlAddrServer, chBase)
@@ -44,10 +45,11 @@ func getAddr(urlAddrServer string, chAddr chan AddrShard) {
 		baseAddr := baseShard.addr
 		addrs := rand.Perm(maxAddrOff + 1) // select address offsets in random order
 		for _, addr := range addrs {
-			addrShard := new(AddrShard)
-			addrShard.shard = baseShard.shard
-			addrShard.addr = baseAddr + uint64(addr)
-			chAddr <- *addrShard
+			addrSh := new(AddrShard)
+			addrSh.shard = baseShard.shard
+			addrSh.addr = baseAddr + uint64(addr)
+			fmt.Printf("getAddr: base=%v; addr=%v; shard=%v\n", baseAddr, addrSh.addr, addrSh.shard)
+			chAddrSh <- *addrSh
 		}
 	}
 }
@@ -143,6 +145,7 @@ func MockServer(baseAddr uint64) chan AddrShard {
 	addrShard.addr = baseAddr
 	getBaseAddrServe = func(url string) (AddrShard, error) {
 		addrShard.addr += baseIncr
+		addrShard.shard = (addrShard.shard + 1) % Nshard
 		return *addrShard, nil
 	}
 	chAddr := make(chan AddrShard)
