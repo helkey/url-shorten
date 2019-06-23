@@ -64,7 +64,7 @@ func (dB DB) SaveUrlDB(fullUrl string, addr uint64, randExt int) (err error) {
 	return
 }
 
-//
+// Read randExt, fullUrl given shortened address
 func (dB DB) ReadUrlDB(addr uint64) (fullUrl string, randExt int, err error) {
 	// Recover from db.Exec() panic
 	defer func() {
@@ -81,5 +81,26 @@ func (dB DB) ReadUrlDB(addr uint64) (fullUrl string, randExt int, err error) {
 		err = errors.New("ReadUrlDB: URL not found")
 	}
 	fmt.Println(randExt, fullUrl)
+	return
+}
+
+// Check if long URL already in database,
+//   return error if can't access
+func (dB DB) CheckUrlDB(fullUrl string) (addr uint64, randExt int, err error) {
+	// Recover from db.Exec() panic
+	defer func() {
+		if r := recover(); r != nil {
+			e := "ReadUlr: can't read URL from database"
+			err = errors.New(e)
+		}
+	}()
+
+	sqlSel := fmt.Sprintf(`SELECT addr, randext FROM url WHERE fullurl = %d;`, fullUrl)
+	row := dB.db.QueryRow(sqlSel)
+	err = row.Scan(&randExt, &fullUrl)
+	if err != nil {
+		err = errors.New("ReadUrlDB: URL not found")
+	}
+	fmt.Printf("fullUrl=%s;  addr=%v;  randExt=%v\n", fullUrl, addr, randExt)
 	return
 }

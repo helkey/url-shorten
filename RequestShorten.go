@@ -12,6 +12,7 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
+	"time"
 )
 
 var chAddrSh = make(chan AddrShard)
@@ -31,6 +32,7 @@ func main() {
 		return
 	}
 
+	fmt.Println("ReqShorten: listening")
 	http.HandleFunc("/create/", shortenHandler)
 	log.Fatal(http.ListenAndServe(UrlShorten, nil))
 }
@@ -47,23 +49,46 @@ func shortenHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	fullUrl := keys[0]
-	shortUrl, errMsg := shortenUrl(fullUrl)
-	if errMsg != "" {
-		fmt.Println("ReqShort err:", errMsg)
-		http.Error(w, "404 not found.", http.StatusNotFound)
-		return
+
+	var shortUrl string
+	var exists bool
+	if shortUrl, exists = existsShort(fullUrl); !exists {
+		shortNew, errMsg := shortenUrl(fullUrl)
+		if errMsg != "" {
+			fmt.Println("ReqShort err:", errMsg)
+			http.Error(w, "404 not found.", http.StatusNotFound)
+			return
+		}
+		fmt.Fprintf(w, shortNew)
 	}
 	fmt.Fprintf(w, shortUrl)
 }
 
+// Check if long URL already in database,
+//   return false if can't access DB
+func existsShort(fullUrl string) (shortUrl string, exists bool) {
+	dB, err := OpenUrlDB(0, password())
+	if err != nil {
+		return "", false
+	}
+	defer dB.db.Close()
+
+	addr, _, err := dB.CheckUrlDB(fullUrl)
+	if err != nil {
+		return "", false
+	}
+	return string(addr), true
+}
+
 func shortenUrl(fullUrl string) (shortUrl string, errMsg string) {
 	fmt.Println("ReqShort: *" + fullUrl + "*")
-
+	// Get unique shortened address
 	addrShard := <-chAddrSh
 	addr := addrShard.addr
 	shard := addrShard.shard
-	// addr, shard := uint64(533881127), 0
-	shortUrl, randExt, err := EncodeURL(fullUrl, addr, shard) // encode.go
+
+	// Generate shortened URL using address and database shard
+	shortUrl, randExt, err := EncodeURL(fullUrl, addr, shard)
 	if err != nil {
 		return "", "Error shortening URL"
 	}
