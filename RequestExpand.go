@@ -70,8 +70,8 @@ func expandUrl(shortUrl string) (longUrl string, err error) {
 	}
 	defer dB.db.Close()
 
-	fullUrl, randDB, err := dB.ReadUrlDB(decodeA)
-	fmt.Printf("fullUrl:%s;  randDB:%v\n", fullUrl, randDB)
+	fullUrl, randDB, nChar, err := dB.ReadUrlDB(decodeA)
+	fmt.Printf("fullUrl:%s, randDB:%v, nChar:%v\n", fullUrl, randDB)
 	if err != nil {
 		// log.Fatal("RequestExpand: error expanding URL: ", shortUrl)
 		return "", errors.New("Error - shortened URL not found")

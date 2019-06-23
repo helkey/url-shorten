@@ -38,7 +38,7 @@ func (dB DB) CreateUrlTable() (err error) {
 		}
 	}()
 
-	_, err = dB.db.Exec(`CREATE TABLE url (addr INTEGER PRIMARY KEY, randext INT, fullurl TEXT);`)
+	_, err = dB.db.Exec(`CREATE TABLE url (addr INTEGER PRIMARY KEY, randext INT, nchar INT, fullurl TEXT);`)
 	if err != nil {
 		fmt.Println("3:", err)
 	}
@@ -46,7 +46,7 @@ func (dB DB) CreateUrlTable() (err error) {
 }
 
 // Save URL mapping to DB
-func (dB DB) SaveUrlDB(fullUrl string, addr uint64, randExt int) (err error) {
+func (dB DB) SaveUrlDB(fullUrl string, addr uint64, randExt, nChar int) (err error) {
 	// Recover from db.Exec() panic
 	defer func() {
 		if r := recover(); r != nil {
@@ -55,9 +55,9 @@ func (dB DB) SaveUrlDB(fullUrl string, addr uint64, randExt int) (err error) {
 		}
 	}()
 
-	sqlIns := `INSERT INTO url (addr, randext, fullurl) VALUES ($1, $2, $3);`
-	fmt.Printf("INSERT (addr=%v, randext=%v, fullurl=%v)\n", addr, randExt, fullUrl)
-	_, err = dB.db.Exec(sqlIns, addr, randExt, fullUrl)
+	sqlIns := `INSERT INTO url (addr, randext, nchar, fullurl) VALUES ($1, $2, $3, $4);`
+	fmt.Printf("INSERT (addr=%v, randext=%v, nchar=%v, fullurl=%v)\n", addr, randExt, nChar, fullUrl)
+	_, err = dB.db.Exec(sqlIns, addr, randExt, nChar, fullUrl)
 	if err != nil {
 		return errors.New("SaveUrl: error saving to 'url' DB")
 	}
@@ -65,7 +65,7 @@ func (dB DB) SaveUrlDB(fullUrl string, addr uint64, randExt int) (err error) {
 }
 
 // Read randExt, fullUrl given shortened address
-func (dB DB) ReadUrlDB(addr uint64) (fullUrl string, randExt int, err error) {
+func (dB DB) ReadUrlDB(addr uint64) (fullUrl string, randExt int, nChar int, err error) {
 	// Recover from db.Exec() panic
 	defer func() {
 		if r := recover(); r != nil {
@@ -74,7 +74,7 @@ func (dB DB) ReadUrlDB(addr uint64) (fullUrl string, randExt int, err error) {
 		}
 	}()
 
-	sqlSel := fmt.Sprintf(`SELECT randext, fullurl FROM url WHERE addr = %d;`, addr)
+	sqlSel := fmt.Sprintf(`SELECT randext, fullurl, nchar FROM url WHERE addr = %d;`, addr)
 	row := dB.db.QueryRow(sqlSel)
 	err = row.Scan(&randExt, &fullUrl)
 	if err != nil {
@@ -86,7 +86,7 @@ func (dB DB) ReadUrlDB(addr uint64) (fullUrl string, randExt int, err error) {
 
 // Check if long URL already in database,
 //   return error if can't access
-func (dB DB) CheckUrlDB(fullUrl string) (addr uint64, randExt int, err error) {
+func (dB DB) CheckUrlDB(fullUrl string) (addr uint64, randExt int, nChar int, err error) {
 	// Recover from db.Exec() panic
 	defer func() {
 		if r := recover(); r != nil {
@@ -95,12 +95,12 @@ func (dB DB) CheckUrlDB(fullUrl string) (addr uint64, randExt int, err error) {
 		}
 	}()
 
-	sqlSel := fmt.Sprintf(`SELECT addr, randext FROM url WHERE fullurl = %d;`, fullUrl)
+	sqlSel := fmt.Sprintf(`SELECT addr, randext, nchar FROM url WHERE fullurl = %d;`, fullUrl)
 	row := dB.db.QueryRow(sqlSel)
-	err = row.Scan(&randExt, &fullUrl)
+	err = row.Scan(&addr, &randExt, &nChar)
 	if err != nil {
 		err = errors.New("ReadUrlDB: URL not found")
 	}
-	fmt.Printf("fullUrl=%s;  addr=%v;  randExt=%v\n", fullUrl, addr, randExt)
+	fmt.Printf("CheckUrl: fullUrl=%s, addr=%v, randExt=%v, nChar=%v\n", fullUrl, addr, randExt, nChar)
 	return
 }

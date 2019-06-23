@@ -31,7 +31,7 @@ func TestRange(t *testing.T) {
 // Test encoding/decoding functions
 func TestEncode(t *testing.T) {
 	en, iShard := "ABCabs012", 0
-	s, _, _ := EncodeURL("https://goog.com", decode(en), iShard)
+	s, _, _, _ := EncodeURL("https://goog.com", decode(en), iShard)
 	i := len(s) - len(en)
 	decodeRS := decode(s[:i])
 	shard := int(decodeRS & (Nshard-1))
@@ -40,7 +40,7 @@ func TestEncode(t *testing.T) {
 	return
 
 	iShard = 7
-	s, _, _ = EncodeURL("https://dropbox.com", decode(en), iShard)
+	s, _, _, _ = EncodeURL("https://dropbox.com", decode(en), iShard)
 	i = len(s) - len(en)
 	decodeRS = decode(s[:i])
 	shard = int(decodeRS & (Nshard-1))

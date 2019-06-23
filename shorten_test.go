@@ -20,7 +20,7 @@ func TestShorten(t *testing.T) {
 	for _, url := range urls {
 		addrShard := <-chAddrM
 		addr, shard := addrShard.addr, addrShard.shard
-		shortUrl, _, err := EncodeURL(url, addrShard.addr, addrShard.shard)
+		shortUrl, _, _, err := EncodeURL(url, addrShard.addr, addrShard.shard)
 		assert.Equal(t, nil, err)
 
 		// Recover shard, compare to specification

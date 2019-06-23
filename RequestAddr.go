@@ -26,6 +26,7 @@ func main() {
 	chAddr = make(chan uint64, gochanDepth)
 	go sendBaseAddr(chAddr)
 
+	fmt.Println("ReqAddr: launched")
 	http.HandleFunc("/addr", addrHandle)
 	// USE ListenAndServeTLS() for https service
 	log.Fatal(http.ListenAndServe(UrlAddrServer, nil))

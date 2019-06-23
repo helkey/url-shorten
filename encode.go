@@ -4,7 +4,6 @@ package main
 
 import (
 	"errors"
-	"fmt"
 	"math/rand"
 	"net"
 	"net/url"
@@ -38,7 +37,7 @@ func init() {
 
 
 // Encode ULR string with address, random address, and database shard
-func EncodeURL(fullUrl string, addr uint64, iShard int) (string, int, error) {
+func EncodeURL(fullUrl string, addr uint64, shard int) (string, int, int, error) {
 	isGrayList := UrlGrayList(fullUrl) // Check for gray-listed domains
 	nChar := NcharR
 	maxR := MaxRand
@@ -47,14 +46,14 @@ func EncodeURL(fullUrl string, addr uint64, iShard int) (string, int, error) {
 		maxR = MaxRandLong
 	}
 	randExt := rand.Intn(maxR)
-	shortUrl, err := encode(isGrayList, addr, randExt, iShard, nChar)
-	return shortUrl, randExt, err
+	shortUrl, err := encode(addr, randExt, shard, nChar)
+	return shortUrl, randExt, nChar, err
 }
 
 // Encode ULR string with address, random address, and database shard
-func encode(isGrayList bool, addr uint64, randExt, iShard, nChar int) (string, error) {
+func encode(addr uint64, randExt, shard, nChar int) (string, error) {
 	encodeA, err := encodeAddr(addr, NcharA)
-	fmt.Println("encode addr:", addr, "iShard:", iShard)
+	// fmt.Println("encode addr:", addr, "shard:", shard)
 	if err != nil {
 		return "", err
 	}
@@ -65,7 +64,7 @@ func encode(isGrayList bool, addr uint64, randExt, iShard, nChar int) (string, e
 
 	// String extension with rand number & shard ID
 	// random extension; before conversion to char
-	randShard := uint64((randExt << NshardBits) | iShard)
+	randShard := uint64((randExt << NshardBits) | shard)
 	// fmt.Printf("randExt:%d %b  randShard:%b \n", randExt, randExt, randShard)
 	encodeR, err := encodeAddr(randShard, nChar)
 	// fmt.Println("encodeR:", encodeR, "err:", err)
@@ -88,9 +87,9 @@ func DecodeURL(shortUrl string) (uint64, int, int) {
 	decodeA := decode(encodeA)
 	decodeRS := int(decode(encodeR))
 	decodeR := decodeRS >> NshardBits // random value
-	iShard := decodeRS & (Nshard-1) // database shard
-	// fmt.Println(encodeR, encodeA, decodeR, iShard)
-	return decodeA, decodeR, iShard
+	shard := decodeRS & (Nshard-1) // database shard
+	// fmt.Println(encodeR, encodeA, decodeR, shard)
+	return decodeA, decodeR, shard
 }
 
 // Generate rand string of encoded characters of specified length
@@ -119,12 +118,10 @@ func UrlGrayList(longUrl string) bool {
 		host = host[4:]
 	}
 	// Check if domain is gray-listed
-	// fmt.Println("host:", host)
 	if _, inList := grayList[host]; inList {
 		// fmt.Println("Found in gray-list")
 		return true // use extended shortening length
 	}
-	// fmt.Println("Domain not gray-listed")
 	return false
 }
 
@@ -200,19 +197,19 @@ func pow(a, b int) int {
 //func  TestEncode(t *testing.T) {
 /*
 func  TestEncode() {
-	en, iShard:= "ABCabs012", 0
-	s, _, _ := EncodeURL("https://goog.com", decode(en), iShard)
+	en, shard:= "ABCabs012", 0
+	s, _, _ := EncodeURL("https://goog.com", decode(en), shard)
 	// assert.Equal(en, s[len(s)-len(en):])
 	i := len(s) - len(en)
 	decodeRS := decode(s[:i])
 	shard := decodeRS & Nshard-1)
-	fmt.Println(en, s[i:], iShard, shard)
+	fmt.Println(en, s[i:], shard, shard)
 	fmt.Println()
 
-	iShard = 7
-	s, _, _ = EncodeURL("https://dropbox.com", decode(en), iShard)
+	shard = 7
+	s, _, _ = EncodeURL("https://dropbox.com", decode(en), shard)
 	i = len(s) - len(en)
 	decodeRS = decode(s[:i])
-	shard = uint32(decodeRS & uint64(Nshard-1))
-	fmt.Println(en, s[i:], iShard, shard)
+	shardExtr = uint32(decodeRS & uint64(Nshard-1))
+	fmt.Println(en, s[i:], shard, shardExtr)
 } */
