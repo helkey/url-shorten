@@ -1,7 +1,7 @@
 URL Shortener Design Doc
 =============
 URL shorteners are used to access Internet resources using a short URL that is easily typed and compactly stored.
-Well-known shorterner examples include:
+Well-known shortener examples include:
 
   * Bitly: the most popular and one of the oldest URL shorteners is used by Twitter for inserting links in tweets.
   By 2016 they had shortened 26 billion URLs
@@ -39,7 +39,7 @@ URL shorteners should provide shortened URLs that are long enough to make advers
   limit the scanning of large numbers of potential URLs (by CAPTCHAS and IP blocking),
   and avoid generation of sequential URL addresses.
   
-The cost of adversarially scanning the 7-bit standard Bit.ly address space was $37k in 2016 [Shmatikov]. 
+The adversarial cost of scanning the 7-bit standard Bit.ly address space was $37k in 2016 [Shmatikov]. 
 The cost of Internet transit dropped 36% per year from 2010-2015 [BandwidthPriceTrends].
 Using these two data points, we can project that by 2022 it will be possible to scan
 all of a 10-character URL space for around $10M, so even the highest security level
@@ -63,9 +63,10 @@ The initial design is to support a  traffic load of 200 shortened requests/secon
 Seven character shortened URLs are sufficient to meet this initial traffic estimate. For comparison, standard
 shortened URLs are 7 characters for standard Bitly links, 8 characters for TinyURL links.
 
+
 ### URL Encoding
 In this URL shortening architecture, shortened URLs will be constructed with characters a-z, A-Z, and 0-9, for a total of 62 different characters
-(the same character set used by Bit.ly for shortening).
+(the same character set used by Bitly for shortening).
 
 The system goal of 200 URL shortening request/sec means over a 5 year period the expected number of shortening requests is:
 
@@ -97,16 +98,16 @@ resent requests in cache.
 
 
 ### Kubernetes
-Application implemented using Kubernetes for load balancing and resource orchestration. Kubernetes *PODS*
+This shortener application is implemented using Kubernetes for load balancing and resource orchestration. Kubernetes *PODS*
 are dynamically created and destroyed to meet evolving traffic loads. This dynamic allocation is helpful
-for providing needed resources for shortening and expanding URLs, but persistant storage is needed for
+for providing needed resources for shortening and expanding URLs, but persistent storage is needed for
 the mapping of short to expanded URLs, and for allocating sections of shorted URL address space to each
 Kubernetes worker.
 
-Kubernetes uses control plane interfaces for communicating with persistant storage. These
-storage solutions are called Volume plugins, which abstract storage and provide portability.
-Persistant Volumes (PV) are storage units independant of any pod.
-Persistant Volume Claims (PVC) are requests for storage.
+Kubernetes uses control plane interfaces for communicating with persistent storage. These
+storage solutions are called Volume plug-ins, which abstract storage and provide portability.
+Persistent Volumes (PV) are storage units independent of any pod.
+Persistent Volume Claims (PVC) are requests for storage.
 
 
 ### Docker
