@@ -15,7 +15,7 @@ Comparing to the leading ULR shortening service, this design has:
   * Higher security (12-character) standard links instead of 7 characters (Bitly standard links), 8 characters (TinyURL links),
     and 10 characters (Bitly Facebook links).
   * Additional (14-character) security for gray-listed sensitive domains (Box,Dropbox, Google Maps, ...)
-  * Scalability designed into architecture: Kubernetes/Docker implementation for orchestration of large workloads scaling
+  * Scalability designed into architecture: Orchestration of large workloads scaling 
   * Database sharding information encoded into shortened URLS.
 
 
@@ -97,29 +97,27 @@ Caching also reduces load on the URL database when many users are requesting acc
 resent requests in cache.
 
 
-### Kubernetes
-This shortener application is implemented using Kubernetes for load balancing and resource orchestration. Kubernetes *PODS*
-are dynamically created and destroyed to meet evolving traffic loads. This dynamic allocation is helpful
-for providing needed resources for shortening and expanding URLs, but persistent storage is needed for
-the mapping of short to expanded URLs, and for allocating sections of shorted URL address space to each
-Kubernetes worker.
+### Application Containers
+Containers have become popular for ensuring consistency between development and release cycles,
+and local and cloud-based deployment.
 
-Kubernetes uses control plane interfaces for communicating with persistent storage. These
-storage solutions are called Volume plug-ins, which abstract storage and provide portability.
-Persistent Volumes (PV) are storage units independent of any pod.
-Persistent Volume Claims (PVC) are requests for storage.
+Docker is often used for its benefits of container management, including platform independence
+and ease of managing resources. Docker is commonly pairing with many application provisioning system.
 
+AWS AMIs
 
-### Docker
-This application implemented using Docker for its benefits of container management, including platform independence and ease of managing resources,
-Docker is a common pairing with Kubernetes-based solutions.
+### Cloud-Based Application Provisioning
+This URL shortener is implemented using Terraform for Cloud Worker orchestration, and depolyed in an AWS cloud environment.
+Terraform was chosen as a provisioning solution based on being an open source, cloud agnostic provisioning tool.
+Terraform uses a declarative method for specifying deployments, which clearly documents existing state of deployed infrastructure.
+Declarative provisioning is easier to operate correctly and reliably than using a procedural approach, for example as provided by Chef and Ansible.
 
 
-### High-Availability Database
-Address storage
-StatefulSets
 
-The key-value database needs to be high reliability, but cost is also a critical issue.
+### High-Availability Databases
+The 
+
+The URL database needs to be fairly high reliability, but cost is also a critical issue.
 The volume of writes and reads is high, and the service has free competitors which puts
 some limit on customer value.
 
