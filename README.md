@@ -19,7 +19,7 @@ Comparing to the leading ULR shortening service, this design has:
   * Database sharding information encoded into shortened URLS.
 
 
-## Security
+## User Security
 The use of URL shorteners can compromise security as reducing entropy of URLs used to specify websites is the purpose
 of the function [Shmatikov][Shmatikov-blog]. The address space of shortened URLs can be scanned to find URLs that reveal
 confidential customer information. Google has discontinued their URL shortening service, but provide clear warnings
@@ -88,6 +88,7 @@ as the URL space filled up.
 
 ### Decode Architecture
 
+
 ### Caching
 Caching is another performance enhancing feature which is important (not included in current algorithm implementation).
 A caching system (such as Redis or Memcache) will save responses to recent queries.
@@ -97,44 +98,55 @@ Caching also reduces load on the URL database when many users are requesting acc
 resent requests in cache.
 
 
-### Application Containers
-Containers have become popular for ensuring consistency between development and release cycles,
-and local and cloud-based deployment.
+### Cloud Hosting
 
-Docker is often used for its benefits of container management, including platform independence
-and ease of managing resources. Docker is commonly pairing with many application provisioning system.
-
-AWS AMIs
 
 ### Cloud-Based Application Provisioning
-This URL shortener is implemented using Terraform for Cloud Worker orchestration, and depolyed in an AWS cloud environment.
+This URL shortener is implemented using Terraform for Cloud Worker orchestration, and deployed in an AWS cloud environment.
 Terraform was chosen as a provisioning solution based on being an open source, cloud agnostic provisioning tool.
 Terraform uses a declarative method for specifying deployments, which clearly documents existing state of deployed infrastructure.
 Declarative provisioning is easier to operate correctly and reliably than using a procedural approach, for example as provided by Chef and Ansible.
 
 
+### Application Deployment
+Containers have become popular for ensuring consistency between development and release cycles,
+and local and cloud-based deployment. Docker is often used for its benefits of container management,
+including platform independence and ease of managing resources. 
 
-### High-Availability Databases
-The 
+AWS AMIs
 
-The URL database needs to be fairly high reliability, but cost is also a critical issue.
-The volume of writes and reads is high, and the service has free competitors which puts
-some limit on customer value.
+### Address Range Database
 
-The key-value database is implemented in a distributed open-source key-value store *etcd*,
-which is written in Go, and uses the Raft consensus algorithm. Other distributed key-value
+
+### URL Database
+In a commercially successful URL shortener, the service has competition offering free services which puts some limit on customer value.
+A URL shortener without a free tier probably could not compete successfully with services providing
+a free tier. A free URL shortening service acts as advertising for enterprise customers,
+as most users become familiar with the service when copy/pasting in shortened links provided by others.
+
+The URL database needs to be fairly high reliability, but cost is probaby the dominant issue.
+The volume of database writes and reads is high, so operational costs are high.
+As a result, a managed database might not be feasible.
+
+The required URL mapping could be implemented in a distributed key-value database.
+A promising implementatin would be the open-source *etcd* database, written in Go,
+which uses the Raft consensus algorithm. Other distributed key-value
 stores include Aerospike, ArandoDB, BoltDB, CouchDB, Google Cloud Datastore, rediisHbase, and Redis.
 https://www.g2.com/categories/key-value-stores
 
-### Key-Value Database Sharding
+For convenience, the initial database implementation is in PostgreSql, which is widely supported by
+cloud computing systems and by container management systems.
+
+
+### URL Database Sharding
 Database access to store the mapping from shortened URLs to URLs can be a
 bottleneck for performance, limiting the scalability of popular web-based application.
 
 Database sharding allows the generated data to be split across multiple databases,
 reducing the load on each database. Here database sharding is implemented as a key
-part of the software architecture. Database sharding, together with using Kubernetes
-to scale resources, should allow this URL shortener implementation to scale to high
-levels of use.
+part of the software architecture. Database sharding, together with scalable cloud workers
+to scale resources, should allow this URL shortener implementation to scale to 
+levels of use similar to commercial competitors (Bit.ly and others)
 
 
 ### System Capacity Scalability
