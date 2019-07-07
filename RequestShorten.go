@@ -51,8 +51,8 @@ func shortenHandler(w http.ResponseWriter, r *http.Request) {
 	fullUrl := keys[0]
 
 	var shortUrl string
-	var exists bool
-	if shortUrl, exists = existsShort(fullUrl); !exists {
+	var err error
+	if shortUrl, err = searchShortUrl(fullUrl); err != nil {
 		fmt.Println("ReqShort: gen new short URL")
 		shortNew, errMsg := shortenUrl(fullUrl)
 		if errMsg != "" {
@@ -69,23 +69,20 @@ func shortenHandler(w http.ResponseWriter, r *http.Request) {
 
 // Check if long URL already in database,
 //   return false if can't access DB
-func existsShort(fullUrl string) (shortUrl string, exists bool) {
-	shard := 0
-	dB, err := OpenUrlDB(shard, password())
-	if err != nil {
-		return "", false
+func searchShortUrl(fullUrl string) (shortUrl string, err error) {
+	// TODO: iterate over all shards
+	for shard := 0; shard <= 1; shard++ {
+		dB, err := OpenUrlDB(shard, password())
+		if err != nil {
+			return "", err
+		}
+		defer dB.db.Close()
+		shortUrl, err = dB.getShortUrl(fullUrl, shard)
+		if err == nil {
+			return fullUrl, nil
+		}
 	}
-	defer dB.db.Close()
-
-	addr, randExt, nChar, err := dB.CheckUrlDB(fullUrl)
-	if err != nil {
-		return "", false
-	}
-	shortUrl, err = encode(addr, randExt, shard, nChar)
-	if err != nil {
-		return "", false
-	}
-	return shortUrl, true
+	return // returns last error
 }
 
 func shortenUrl(fullUrl string) (shortUrl string, errMsg string) {

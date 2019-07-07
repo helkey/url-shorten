@@ -14,7 +14,15 @@ import (
 	_ "github.com/lib/pq"
 )
 
-func OpenUrlDB(shard int, passwd string) (DB, error) {
+func OpenUrlDB(shard int, passwd string) (dB DB, err error) {
+	// Recover from db.Exec() panic
+	defer func() {
+		if r := recover(); r != nil {
+			e := "CreateTable: can't create database table"
+			err = errors.New(e)
+		}
+	}()
+
 	dbInfo := fmt.Sprintf("host=%s port=%d user=%s "+
 		"password=%s dbname=%s sslmode=disable",
 		host, port, user, passwd, dbName)
@@ -84,10 +92,16 @@ func (dB DB) ReadUrlDB(addr uint64) (fullUrl string, randExt int, nChar int, err
 	return
 }
 
-// Check if long URL already in database,
-//   return error if can't access
-func (dB DB) CheckUrlDB(fullUrl string) (addr uint64, randExt int, nChar int, err error) {
-	// Recover from db.Exec() panic
+// Check if long URL in database, return shortened URL
+// func (dB DB) ExistsUrlDB(fullUrl string) (addr uint64, randExt int, nChar int, err error) {
+func (dB DB) getShortUrl(fullUrl string, shard int) (shortUrl string, err error) {
+	addr, randExt, nChar, err := dB.queryDBfullUrl(fullUrl)
+	shortUrl, err = encode(addr, randExt, shard, nChar)
+	return
+}
+
+func (dB DB) queryDBfullUrl(fullUrl string) (addr uint64, randExt int, nChar int, err error) {
+	// Recover from database access panic
 	defer func() {
 		if r := recover(); r != nil {
 			e := "ReadUlr: can't read URL from database"
@@ -97,10 +111,7 @@ func (dB DB) CheckUrlDB(fullUrl string) (addr uint64, randExt int, nChar int, er
 
 	sqlSel := fmt.Sprintf(`SELECT addr, randext, nchar FROM url WHERE fullurl = %d;`, fullUrl)
 	row := dB.db.QueryRow(sqlSel)
+	fmt.Println("row", row)
 	err = row.Scan(&addr, &randExt, &nChar)
-	if err != nil {
-		err = errors.New("ReadUrlDB: URL not found")
-	}
-	fmt.Printf("CheckUrl: fullUrl=%s, addr=%v, randExt=%v, nChar=%v\n", fullUrl, addr, randExt, nChar)
 	return
 }
