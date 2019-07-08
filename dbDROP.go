@@ -21,12 +21,31 @@ func InitAddrTable() {
 	dB.CreateAddrTable()
 }
 
-func InitUrlTable(shard int) {
-	dB, _ := OpenUrlDB(shard, password())
-	nRows, _ := dB.NumRowsDB("url")
-	fmt.Printf("DB 'url' HAD %d rows\n", nRows)
-	dB.DropTable("url")
-	dB.CreateUrlTable()
+func InitUrlTable(shard int) (DB, error) {
+	dB, err := OpenUrlDB(shard, password())
+	if err != nil {
+		fmt.Println("InitUrlTable: OpenUrlDB failed")
+		return dB, err
+	}
+
+	// nRows, err := dB.NumRowsDB("url")
+	if err != nil {
+		fmt.Println("InitUrlTable: NumRowsDB failed")
+		return dB, err
+	}
+	// fmt.Printf("DB 'url' HAD %d rows\n", nRows)
+
+	err = dB.DropTable("url")
+	if err != nil {
+		fmt.Println("InitUrlTable: DropTable failed")
+		return dB, err
+	}
+
+	err = dB.CreateUrlTable()
+	if err != nil {
+		fmt.Println("InitUrlTable: CreateUrlTable failed")
+	}
+	return dB, err
 }
 
 // Drop table of address assigned
@@ -39,10 +58,10 @@ func (dB DB) DropTable(name string) (err error) {
 		}
 	}()
 
-	fmt.Printf("DROPPED TABLE %s; CAREFUL WITH PRODUCTION TABLES!\n", name)
 	_, err = dB.db.Exec(`DROP TABLE ` + name + `;`)
 	if err != nil {
 		fmt.Println(e, ": ", err)
 	}
-	return err
+	fmt.Printf("DROPPED TABLE %s; CAREFUL WITH PRODUCTION TABLES!\n", name)
+	return
 }

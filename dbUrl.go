@@ -23,6 +23,7 @@ func OpenUrlDB(shard int, passwd string) (dB DB, err error) {
 		}
 	}()
 
+	// fmt.Println("password:", passwd)
 	dbInfo := fmt.Sprintf("host=%s port=%d user=%s "+
 		"password=%s dbname=%s sslmode=disable",
 		host, port, user, passwd, dbName)
@@ -82,11 +83,12 @@ func (dB DB) ReadUrlDB(addr uint64) (fullUrl string, randExt int, nChar int, err
 		}
 	}()
 
-	sqlSel := fmt.Sprintf(`SELECT randext, fullurl, nchar FROM url WHERE addr = %d;`, addr)
+	fmt.Println("ReadUrlDB:", addr)
+	sqlSel := fmt.Sprintf(`SELECT randext, fullurl FROM url WHERE addr = %d;`, addr)
 	row := dB.db.QueryRow(sqlSel)
 	err = row.Scan(&randExt, &fullUrl)
 	if err != nil {
-		err = errors.New("ReadUrlDB: URL not found")
+		return // err = errors.New("ReadUrlDB: URL not found")
 	}
 	fmt.Println(randExt, fullUrl)
 	return
@@ -96,6 +98,9 @@ func (dB DB) ReadUrlDB(addr uint64) (fullUrl string, randExt int, nChar int, err
 // func (dB DB) ExistsUrlDB(fullUrl string) (addr uint64, randExt int, nChar int, err error) {
 func (dB DB) getShortUrl(fullUrl string, shard int) (shortUrl string, err error) {
 	addr, randExt, nChar, err := dB.queryDBfullUrl(fullUrl)
+	if err != nil {
+		return
+	}
 	shortUrl, err = encode(addr, randExt, shard, nChar)
 	return
 }
@@ -109,7 +114,8 @@ func (dB DB) queryDBfullUrl(fullUrl string) (addr uint64, randExt int, nChar int
 		}
 	}()
 
-	sqlSel := fmt.Sprintf(`SELECT addr, randext, nchar FROM url WHERE fullurl = %d;`, fullUrl)
+	fmt.Println("search fullUrl:", fullUrl)
+	sqlSel := fmt.Sprintf(`SELECT addr, randext, nchar FROM url WHERE fullurl = '%s';`, fullUrl)
 	row := dB.db.QueryRow(sqlSel)
 	fmt.Println("row", row)
 	err = row.Scan(&addr, &randExt, &nChar)
