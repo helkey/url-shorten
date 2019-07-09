@@ -10,27 +10,32 @@ import (
 	"testing"
 )
 
-func not_used() {
-	shard := 0
+const shard = 0
+const 	fullUrl = "http://dbUrl_test.go"
+const 	addr = uint64(123456789)
+const 	randExt = 314159
+const 	nChar = 3
+
+// For testing with $go run  (instead of $go test)
+func For_Go_run_mode() {
 	dB, err := InitUrlTable(shard)
 	if err != nil {
 		fmt.Println("InitUrlTable:", err)
 	}
 
-	fullUrl, addr, randExt, nChar := "http://dbUrl_test.go", uint64(123456789), 314159, 3
 	err = dB.SaveUrlDB(fullUrl, addr, randExt, nChar)
 	if err != nil {
 		fmt.Println("SaveUrlDB:", err)
 	}
 
-	fullUrl, randExt, nChar, err = dB.ReadUrlDB(addr)
+	fullUrl_new, randExt_new, nChar_new, err := dB.ReadUrlDB(addr)
 	if err != nil {
 		fmt.Println("ReadUrlDB:", err)
 	} else {
-		fmt.Printf("fullUrl=%s, randExt=%v, nChar=%v \n", fullUrl, randExt, nChar)
+		fmt.Printf("fullUrl=%s, randExt=%v, nChar=%v \n", fullUrl_new, randExt_new, nChar_new)
 	}
 
-	shortUrl, err := dB.getShortUrl(fullUrl, shard)
+	shortUrl, err := dB.getShortUrl(fullUrl_new, shard)
 	if err != nil {
 		fmt.Println("getShortUrl:", err)
 	} else {
@@ -47,17 +52,15 @@ func not_used() {
 }
 
 func TestSaveUrl(t *testing.T) {
-	shard := 0
 	dB, err := InitUrlTable(shard)
 	assert.Equal(t, nil, err)
 
-	fullUrl, addr, randExt, nChar := "http://dbUrl_test.go", uint64(1234567), 314159, 12
 	err = dB.SaveUrlDB(fullUrl, addr, randExt, nChar)
 	assert.Equal(t, nil, err)
 
 	shortUrl, err := dB.getShortUrl(fullUrl, shard)
 	assert.Equal(t, nil, err)
-	assert.Equal(t, "axOE00008m0Kx", shortUrl)
+	assert.Equal(t, "xOE00008m0Kx", shortUrl)
 
 	wrongUrl := "http://wrong.com"
 	_, err = dB.getShortUrl(wrongUrl, shard)
