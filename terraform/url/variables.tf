@@ -1,15 +1,11 @@
 variable "public_key_path" {
-  description = <<DESCRIPTION
-Path to the SSH public key to be used for authentication.
-Ensure this keypair is added to your local SSH agent so provisioners can
-connect.
-
-Example: ~/.ssh/terraform.pub
-DESCRIPTION
+  description = "public key path"
+  default = "~/.ssh/terraform_rsa.pub"
 }
 
 variable "key_name" {
-  description = "Desired name of AWS key pair"
+  description = "key name"
+  default = "~/.ssh/authorized_keys/url-key-uswest.pem"
 }
 
 variable "aws_region" {
@@ -17,10 +13,9 @@ variable "aws_region" {
   default     = "us-west-2"
 }
 
-# Ubuntu Precise 12.04 LTS (x64)
 variable "aws_amis" {
+  description = "Amazon instance machine images"
   default = {
-    eu-west-1 = "ami-674cbc1e"
     us-east-1 = "ami-1d4e7a66"
     us-west-1 = "ami-969ab1f6"
     us-west-2 = "ami-8803e0f0"

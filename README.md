@@ -25,7 +25,7 @@ of the function [Shmatikov][Shmatikov-blog]. The address space of shortened URLs
 confidential customer information. Google has discontinued their URL shortening service, but provide clear warnings
 about risks of using the service that they no longer provide.
 
-![](GoogleShortenerHighlighted.png "Google Security Warning")
+![](figs/GoogleShortenerHighlighted.png "Google Security Warning")
 
 As a result, the URL shortened address space can be searched to find web sites containing
 
@@ -45,7 +45,7 @@ Using these two data points, we can project that by 2022 it will be possible to 
 all of a 10-character URL space for around $10M, so even the highest security level
 that Bitly offers is not good enough for securing a large number of sensitive URLs.
 
-![](ScanningCost.png "URL Scanning Cost")
+![](figs/ScanningCost.png "URL Scanning Cost")
 
 In contrast, this URL shortening project uses 12 characters for standard
 level of security, projected to cost ~$600M to scan in 2022.
@@ -84,7 +84,7 @@ Fixed-length short URLs are implemented, although the length of URLs should be i
 as the URL space filled up.
 
 ### Encode Architecture
-
+Load balancer
 
 ### Decode Architecture
 
@@ -98,25 +98,11 @@ Caching also reduces load on the URL database when many users are requesting acc
 resent requests in cache.
 
 
-### Cloud Hosting
-
-
-### Cloud-Based Application Provisioning
-This URL shortener is implemented using Terraform for Cloud Worker orchestration, and deployed in an AWS cloud environment.
-Terraform was chosen as a provisioning solution based on being an open source, cloud agnostic provisioning tool.
-Terraform uses a declarative method for specifying deployments, which clearly documents existing state of deployed infrastructure.
-Declarative provisioning is easier to operate correctly and reliably than using a procedural approach, for example as provided by Chef and Ansible.
-
-
-### Application Deployment
-Containers have become popular for ensuring consistency between development and release cycles,
-and local and cloud-based deployment. Docker is often used for its benefits of container management,
-including platform independence and ease of managing resources. 
-
-AWS AMIs
-
 ### Address Range Database
-
+Highly reliability
+Zookeeper is a [highly reliable distributed datastore](https://aphyr.com/posts/291-call-me-maybe-zookeeper) that is suitable for this task.
+Zookeeper uses majority quorums - using five notes, any two nodes could fail without degrading the system.
+Zookeeper is also linearizable - all clients see the same ordering for updates occuring in the sam.
 
 ### URL Database
 In a commercially successful URL shortener, the service has competition offering free services which puts some limit on customer value.
@@ -124,21 +110,17 @@ A URL shortener without a free tier probably could not compete successfully with
 a free tier. A free URL shortening service acts as advertising for enterprise customers,
 as most users become familiar with the service when copy/pasting in shortened links provided by others.
 
-The URL database needs to be fairly high reliability, but cost is probaby the dominant issue.
+The URL database also needs to be reliable, but cost is a dominant issue.
 The volume of database writes and reads is high, so operational costs are high.
-As a result, a managed database might not be feasible.
+As a result, a managed database like AWS RDS might not be commercially feasible for this application.
 
 The required URL mapping could be implemented in a distributed key-value database.
-A promising implementatin would be the open-source *etcd* database, written in Go,
-which uses the Raft consensus algorithm. Other distributed key-value
-stores include Aerospike, ArandoDB, BoltDB, CouchDB, Google Cloud Datastore, rediisHbase, and Redis.
-https://www.g2.com/categories/key-value-stores
-
-For convenience, the initial database implementation is in PostgreSql, which is widely supported by
-cloud computing systems and by container management systems.
+A promising distributed database might be the open-source *etcd* database, written in Go,
+which uses the Raft consensus algorithm. Other candidate [distributed key-value
+stores](https://www.g2.com/categories/key-value-stores) include Aerospike, ArandoDB, BoltDB, CouchDB, Google Cloud Datastore, Hbase, and Redis.
 
 
-### URL Database Sharding
+### URL Database Sharding / Replicas
 Database access to store the mapping from shortened URLs to URLs can be a
 bottleneck for performance, limiting the scalability of popular web-based application.
 
@@ -147,6 +129,9 @@ reducing the load on each database. Here database sharding is implemented as a k
 part of the software architecture. Database sharding, together with scalable cloud workers
 to scale resources, should allow this URL shortener implementation to scale to 
 levels of use similar to commercial competitors (Bit.ly and others)
+
+[Database read replicas](https://aws.amazon.com/rds/details/read-replicas/) are useful for read-heavy applications.
+A URL shortening application is an ideal case where database reads and writes from from separate applications.
 
 
 ### System Capacity Scalability
@@ -174,24 +159,114 @@ in other URL shorting services.
 
 
 ## Implementation
+Load balancer
 
-## Performance Results
-
-
-
-## Future Features
-So far this Minimum Viable Product (MVP) is designed to demonstrate highly scalable link shortening.
-A variety of other features would be necessary to make this a commercially viable product.
-
-<b>Branded domains</b>: Support link shortening for user-customized domain names.
-
-<b>Monetization</b>: As and example, Bitly limits free user to 10k clicks/month, and only 500 clicks/month with a branded domain.
-  Their business plan is available for $950 per month.
-  Bitly is eying revenue of $100M/year, suggesting a market demand of around 100k professional licenses [BitlyRevenue]
+For convenience, the initial demonstration uses databases implementated using AWS RDS PostgreSql,
+which is well supported by Terraform.
 
 
 
-## References
+## Load Balancer
+ELB (AWS)::
+HAProxy
+nginx
+
+## Network Security
+The architecture used here has a public-facing load-balancer, which forwards traffic to the other worker nodes
+  which are on a private network for improved security.
+
+Management connections to the worker nodes is through a [bastion host](), which forwards (ssh) traffic to the worker nodes.
+Load balancer as bastion host.
+
+For improved security, a bastion host can be configured as a stand-alone server with a stripped-down operating system,
+such as [AWS AppStream](https://aws.amazon.com/blogs/security/how-to-use-amazon-appstream-2-0-to-reduce-your-bastion-host-attack-surface/).
+
+
+## Cloud-Based Application Provisioning
+
+### Terraform
+Terraform was used to provision cloud worker resourse for this URL shortener.
+Terraform was chosen as a provisioning solution based on being an open source, cloud agnostic provisioning tool.
+Terraform uses a declarative method for specifying deployments, which clearly documents existing state of deployed infrastructure.
+Declarative provisioning is easier to operate correctly and reliably than using a procedural approach, for example as provided by Chef and Ansible.
+
+Terraform can also be used to allocate database resources.
+
+Bastion host
+use ssh agent configured with agent forwarding from the client computer to avoid having to
+  [store the private key on the bastion computer](https://aws.amazon.com/blogs/security/securely-connect-to-linux-instances-running-in-a-private-amazon-vpc/)
+
+
+## Configuration Management
+Containers have become popular for ensuring consistency between development and release cycles,
+and local and cloud-based deployment. Docker is often used for its benefits of container management,
+including platform independence and ease of managing resources. The solution here runs a single Go binary
+on each instance. Go packages all dependances into a single executable and so a simpler solution seems appropriate.
+
+### Packer
+[Packer]() is used here for generating cloud instance images used by Terraform.
+Packer ensures that the images you test on are the same as deployed for production.
+
+Packer (like Docker) allows building a single configuration that supports
+multiple target platforms, and supports cloud environments such as AWS, Azure, Google Cloud, as well as
+desktop environments such as Linux, Windows, and Macintosh environments, and platforms such as Docker, Kubernetes, and VMware.
+
+For complex configuration management, Packer interfaces with popular configuration management tools such as 
+Chef and Ansible. Go makes configuration management simple by packaging up the executable into a single binary.
+Here simple Packer configuration scripts were used for configuration management.
+
+
+## Cloud Hosting
+AWS
+
+### Amazon Machine Images
+AWS uses Amazon Machine Images (AMIs) to customize cloud instances.
+The drawing below shows the lifecycle of an AWS AMI.
+AMIs can be created and stored, then registered when ready for instantiaion.
+Multiple identical cloud works can be generated from an AMI.
+The AMI should be deregistered when no longer needed.
+
+![](figs/ami_lifecycle.png "AMI life cycle")
+[AMI lifecycle](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/AMIs.html]
+
+AMIs can be tagged for identification, such as 'owner', 'development/production', or 'release number'.
+Tags to organize your AWS bill, for example for budgeting and accounting purposes.
+
+AWS provides generic AMIs as a starting point for customization, such as the [Linux 2 AMI](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/finding-an-ami.html).
+AMIs can be manually configured, for example by launching a generic AMI, customizing from the command line, then save updated the updated AIM with a new name.
+
+AWS provides a [checklist](docs.aws.amazon.com/marketplace/latest/userguide/best-practices-for-building-your-amis.html) for AMIs, including:
+
+    Linux-based AMIs that a valid SSH port is open (default is 22)
+    ...
+    
+
+## Container orchestration
+Terraform was used here for provisioning cloud resources due to its simplicity and ease of use.
+It is well designed, and easy to use.
+
+Terrafrom can also be used for orchestrating resources based network traffic.
+Other schedulers popular for large and complex systems include Fleet, Marathon, Mesos, and Kubernetes.
+
+### Kubernetes
+Kubernetes provides deployment, scaling, load balancing, and monitoring.
+Kubernetes is particularly well suited for a hybrid use case, where some of the resources are in an on-prem data center,
+and other resources are in the cloud.
+
+Kubernetes was developed at Google, and has become an extremely popular recently due to power and flexibilty.
+In 2015, container survey found just 10 percent of respondents were using any container orchestration tool.
+Two years, 71% of respondents were using Kubernetes to manage their containers.
+   
+
+
+
+## Continous Integration
+CI/CD from GitHub to EC2 using AWS CodeBuild & CodeDeploy
+
+
+## Testing
+
+
 
 [Shmatikov]: [Gone in Six Characters: Short URLs Considered Harmful for Cloud Services](https://arxiv.org/pdf/1604.02734v1.pdf)
 
