@@ -242,23 +242,23 @@ AWS provides a [checklist](docs.aws.amazon.com/marketplace/latest/userguide/best
     
 
 ## Container orchestration
+
+### Kubernetes
+Kubernetes provides deployment, scaling, load balancing, and monitoring.
+Kubernetes was developed at Google, and has become an extremely popular recently due to power and flexibilty.
+In 2015, container survey found just 10 percent of respondents were using any container orchestration tool.
+Two years, 71% of respondents were using Kubernetes to manage their containers.
+
+Kubernetes is particularly well suited for a hybrid use case, where some of the resources are in an on-prem data center,
+and other resources are in the cloud. Kubernetes is complex, and this application could be scaled with a simpler solution.
+
+
+### Terraform
 Terraform was used here for provisioning cloud resources due to its simplicity and ease of use.
 It is well designed, and easy to use.
 
 Terrafrom can also be used for orchestrating resources based network traffic.
 Other schedulers popular for large and complex systems include Fleet, Marathon, Mesos, and Kubernetes.
-
-### Kubernetes
-Kubernetes provides deployment, scaling, load balancing, and monitoring.
-Kubernetes is particularly well suited for a hybrid use case, where some of the resources are in an on-prem data center,
-and other resources are in the cloud.
-
-Kubernetes was developed at Google, and has become an extremely popular recently due to power and flexibilty.
-In 2015, container survey found just 10 percent of respondents were using any container orchestration tool.
-Two years, 71% of respondents were using Kubernetes to manage their containers.
-   
-
-
 
 ## Continous Integration
 CI/CD from GitHub to EC2 using AWS CodeBuild & CodeDeploy
