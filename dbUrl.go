@@ -1,4 +1,4 @@
-// dbAddr.go
+// dbUrl.go
 // go run dbUrl.go
 
 // pgstart (WSL)  # Starting PostgreSQL 10 database server
@@ -14,30 +14,33 @@ import (
 	_ "github.com/lib/pq"
 )
 
+// Host, port for Url database shards
+func hostUrlDB(shard int) (string, int) {
+	return hostUrl[shard], portUrl
+}
+
+// Open Url database (for given shard)
 func OpenUrlDB(shard int, passwd string) (dB DB, err error) {
-	// Recover from db.Exec() panic
+	// Recover from sql.Open() panic
 	defer func() {
 		if r := recover(); r != nil {
-			e := "CreateTable: can't create database table"
+			e := "OpenUrlDB: can't open *URL* database table"
 			err = errors.New(e)
 		}
 	}()
 
-	// fmt.Println("password:", passwd)
-	dbInfo := fmt.Sprintf("host=%s port=%d user=%s "+
-		"password=%s dbname=%s sslmode=disable",
-		host, port, user, passwd, dbName)
+	host, port := hostUrlDB(shard)
+	dbInfo := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
+		host, port, dbUser, passwd, dbName)
 	db, err := sql.Open(dbType, dbInfo)
 	if err != nil {
-		e := "CreateTable: not able to connect to database"
-		fmt.Println(e)
-		// log.Fatal(e)
-		return DB{}, errors.New(e)
+		// e := "OpenUrlDB: not able to connect to database"
+		return DB{}, err // errors.New(e)
 	}
 	return DB{db}, nil
 }
 
-// Create new DB shard / table
+// Create new DB table
 func (dB DB) CreateUrlTable() (err error) {
 	// Recover from db.Exec() panic
 	defer func() {
@@ -65,7 +68,7 @@ func (dB DB) SaveUrlDB(fullUrl string, addr uint64, randExt, nChar int) (err err
 	}()
 
 	sqlIns := `INSERT INTO url (addr, randext, nchar, fullurl) VALUES ($1, $2, $3, $4);`
-	fmt.Printf("INSERT (addr=%v, randext=%v, nchar=%v, fullurl=%v)\n", addr, randExt, nChar, fullUrl)
+	// fmt.Printf("INSERT (addr=%v, randext=%v, nchar=%v, fullurl=%v)\n", addr, randExt, nChar, fullUrl)
 	_, err = dB.db.Exec(sqlIns, addr, randExt, nChar, fullUrl)
 	if err != nil {
 		return errors.New("SaveUrl: error saving to 'url' DB")
@@ -94,9 +97,30 @@ func (dB DB) ReadUrlDB(addr uint64) (fullUrl string, randExt int, nChar int, err
 	return
 }
 
-// Check if long URL in database, return shortened URL
+
+// Check if a shortened Url already in any database shard
+func getShortUrlAllDB(fullUrl string) (shortUrl string, err error) {
+	// TODO: iterate over all shards
+	var dB DB
+	for shard := 0; shard < Nshard; shard++ {
+		dB, err = OpenUrlDB(shard, password())
+		if err != nil {
+			return
+		}
+		defer dB.db.Close()
+		shortUrl, err = dB.getShortUrlShard(fullUrl, shard)
+		// fmt.Println("fullUrl", fullUrl, shard, err)
+		if err == nil {
+			return // fullUrl found in this db shard
+		}
+	}
+	return // returns last error
+}
+
+
+// Check if long URL in database shard, return shortened URL
 // func (dB DB) ExistsUrlDB(fullUrl string) (addr uint64, randExt int, nChar int, err error) {
-func (dB DB) getShortUrl(fullUrl string, shard int) (shortUrl string, err error) {
+func (dB DB) getShortUrlShard(fullUrl string, shard int) (shortUrl string, err error) {
 	addr, randExt, nChar, err := dB.queryDBfullUrl(fullUrl)
 	if err != nil {
 		return
@@ -105,6 +129,7 @@ func (dB DB) getShortUrl(fullUrl string, shard int) (shortUrl string, err error)
 	return
 }
 
+// Check if long URL in database shard, return addr
 func (dB DB) queryDBfullUrl(fullUrl string) (addr uint64, randExt int, nChar int, err error) {
 	// Recover from database access panic
 	defer func() {
@@ -114,10 +139,10 @@ func (dB DB) queryDBfullUrl(fullUrl string) (addr uint64, randExt int, nChar int
 		}
 	}()
 
-	fmt.Println("search fullUrl:", fullUrl)
+	// fmt.Println("search fullUrl:", fullUrl)
 	sqlSel := fmt.Sprintf(`SELECT addr, randext, nchar FROM url WHERE fullurl = '%s';`, fullUrl)
 	row := dB.db.QueryRow(sqlSel)
-	fmt.Println("row", row)
+	// fmt.Println("row", row)
 	err = row.Scan(&addr, &randExt, &nChar)
 	return
 }

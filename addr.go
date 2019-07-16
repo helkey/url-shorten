@@ -48,7 +48,7 @@ func getAddr(urlAddrServer string, chAddrSh chan AddrShard) {
 			addrSh := new(AddrShard)
 			addrSh.shard = baseShard.shard
 			addrSh.addr = baseAddr + uint64(addr)
-			fmt.Printf("getAddr: base=%v; addr=%v; shard=%v\n", baseAddr, addrSh.addr, addrSh.shard)
+			// fmt.Printf("getAddr: base=%v; addr=%v; shard=%v\n", baseAddr, addrSh.addr, addrSh.shard)
 			chAddrSh <- *addrSh
 		}
 	}

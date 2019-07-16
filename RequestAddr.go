@@ -19,7 +19,7 @@ func main() {
 	rand.Seed(time.Now().UnixNano()) // initialize random seed
 	if INITIALIZEDB {
 		InitAddrTable()
-		rand.Seed(0) // initialize deterministic seed
+		rand.Seed(0) // deterministic seed for testing
 	}
 
 	const gochanDepth = 1
@@ -36,7 +36,7 @@ var shard int = 0 // Database shard assigned for address range
 var iAddr = 0     // pointer to current address range
 
 // Get base address from go channel buffer
-// Round-robin database shard allocation
+//   Uses round-robin database shard allocation
 func addrHandle(w http.ResponseWriter, r *http.Request) {
 	// fmt.Println("RequestAddr: addrHandle")
 	addr := <-chAddr
@@ -46,8 +46,7 @@ func addrHandle(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, addrShard)
 }
 
-// Queue base addresses for assignment using
-//   buffered go channel as queue.
+// Queue base addresses for assignment using buffered go channel
 func sendBaseAddr(chBase chan uint64) {
 	const SLEEPSEC = 1
 	passwd := password()
@@ -62,7 +61,7 @@ func sendBaseAddr(chBase chan uint64) {
 		// fmt.Println("ReqAddr: getRandAddr")
 		addr, err := dB.GetRandAddr()
 		if err != nil {
-			fmt.Println("ERR ReqAddr: getRandAddr")
+			fmt.Println("ERR ReqAddr: getRandAddr", err)
 			time.Sleep(SLEEPSEC * time.Second)
 			continue
 		}

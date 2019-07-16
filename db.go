@@ -11,9 +11,7 @@ import (
 
 const (
 	dbType = "postgres"
-	host   = "localhost"
-	port   = 5433
-	user   = "postgres"
+	dbUser   = "postgres"
 	dbName = "postgres"
 )
 

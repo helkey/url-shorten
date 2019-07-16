@@ -1,6 +1,7 @@
 // RequestExpand
 // go run RequestExpand.go addr.go db.go dbAddr.go dbUrl.go dbDrop.go encode.go network.go 'passwd'
-// localhost:8090/L6X000000bmG
+//   localhost:8090/L6X000000bmG
+
 package main
 
 import (
@@ -28,7 +29,7 @@ func main() {
 	shard := 0
 	dB, _ := OpenUrlDB(shard, password())
 	nRows, _ := dB.NumRowsDB("url")
-	fmt.Printf("DB 'url' has %i rows\n", nRows)
+	fmt.Printf("DB 'url' HAS %i rows\n", nRows)
 
 	http.HandleFunc("/", expandHandler)
 	log.Fatal(http.ListenAndServe(UrlExpand, nil))

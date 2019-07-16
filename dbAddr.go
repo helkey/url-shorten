@@ -16,14 +16,21 @@ import (
 	_ "github.com/lib/pq"
 )
 
-func OpenAddrDB(passwd string) (DB, error) {
-	dbInfo := fmt.Sprintf("host=%s port=%d user=%s "+
-		"password=%s dbname=%s sslmode=disable",
-		host, port, user, passwd, dbName)
+func OpenAddrDB(passwd string) (dB DB, err error) {
+	// Recover from sql.Open() panic
+	defer func() {
+		if r := recover(); r != nil {
+			e := "OpenAddrDB: can't open *ADDR* database table"
+			err = errors.New(e)
+		}
+	}()
+	
+	dbInfo := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
+		hostAddr, portAddr, dbUser, passwd, dbName)
 	db, err := sql.Open(dbType, dbInfo)
 	if err != nil {
-		e := "dbAddr: not able to connect to database"
-		return DB{}, errors.New(e)
+		// e := "OpenAddrDB: not able to connect to database"
+		return DB{}, err // errors.New(e)
 	}
 	return DB{db}, nil
 }
@@ -52,7 +59,7 @@ func (dB DB) GetRandAddr() (addr uint64, err error) {
 		var count int
 		count, err = dB.NumRowsAddr(addr)
 		if err != nil {
-			fmt.Println("ERR dbAddr/NumAddrRows")
+			// fmt.Println("ERR dbAddr/NumAddrRows", err)
 			return
 		}
 		// If rand addr avail, save to DB, wait, check for concurrent selection

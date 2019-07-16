@@ -1,5 +1,5 @@
 // dbUrl_test.go
-// go test dbUrl_test.go dbUrl.go db.go dbDROP.go dbAddr.go addr.go encode.go -args 'password
+// go test dbUrl_test.go dbUrl.go db.go dbDROP.go dbAddr.go addr.go encode.go network.go -args 'password
 //  NOTE: go run does not use -args!!!
 package main
 
@@ -35,6 +35,7 @@ func For_Go_run_mode() {
 		fmt.Printf("fullUrl=%s, randExt=%v, nChar=%v \n", fullUrl_new, randExt_new, nChar_new)
 	}
 
+	// Verify find previously saved URL
 	shortUrl, err := dB.getShortUrl(fullUrl_new, shard)
 	if err != nil {
 		fmt.Println("getShortUrl:", err)
@@ -42,6 +43,7 @@ func For_Go_run_mode() {
 		fmt.Println("shortUrl:", shortUrl)
 	}
 
+	// Verify don't find previous different URL
 	wrongUrl := "http://wrong.com"
 	wrongShortUrl, err := dB.getShortUrl(wrongUrl, shard)
 	if err != nil {
