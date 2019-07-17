@@ -60,7 +60,8 @@ func shortenHandler(w http.ResponseWriter, r *http.Request) {
 		fmt.Println("ReqShort: reuse existing shortened URL")
 	}
 	_, _, shard := DecodeURL(shortUrl)
-	shortInfo := fmt.Sprintf("%s shard:%v", shortUrl, shard)
+	instance := getInstance() // Cloud instance identifier
+	shortInfo := fmt.Sprintf("%s shard:%v; i:%s", shortUrl, shard, instance)
 	fmt.Fprintf(w, shortInfo)
 	fmt.Println("")
 }

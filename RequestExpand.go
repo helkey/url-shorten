@@ -29,7 +29,7 @@ func main() {
 	shard := 0
 	dB, _ := OpenUrlDB(shard, password())
 	nRows, _ := dB.NumRowsDB("url")
-	fmt.Printf("DB 'url' HAS %i rows\n", nRows)
+	fmt.Printf("DB 'url' HAS %d rows\n", nRows)
 
 	http.HandleFunc("/", expandHandler)
 	log.Fatal(http.ListenAndServe(UrlExpand, nil))
@@ -43,7 +43,7 @@ func expandHandler(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, err)
 	} else {
 		// TODO: Redirect!!
-		fmt.Fprint(w, "expand: ", longUrl)
+		fmt.Fprint(w, longUrl)
 	}
 }
 
@@ -57,7 +57,7 @@ func expandUrl(shortUrl string) (longUrl string, err error) {
 	// Decode short URL components
 	// decodeA, decodeR, shard := DecodeURL("oxABCabs0123") // randSlice=1521
 	decodeA, decodeR, shard := DecodeURL(shortUrl)
-	decodeA, decodeR = 533881127, 6880
+	// decodeA, decodeR = 533881127, 6880
 	fmt.Printf("decodeA:%v;  decodeR:%v;  shard:%v\n", decodeA, decodeR, shard)
 	if shard >= Nshard {
 		// log.Fatal("RequestExpand error: invalid DB shard", shortUrl)
@@ -72,7 +72,7 @@ func expandUrl(shortUrl string) (longUrl string, err error) {
 	defer dB.db.Close()
 
 	fullUrl, randDB, nChar, err := dB.ReadUrlDB(decodeA)
-	fmt.Printf("fullUrl:%s, randDB:%v, nChar:%v\n", fullUrl, randDB)
+	fmt.Printf("fullUrl:%s, randDB:%v, nChar:%v\n", fullUrl, randDB, nChar)
 	if err != nil {
 		// log.Fatal("RequestExpand: error expanding URL: ", shortUrl)
 		return "", errors.New("Error - shortened URL not found")
@@ -80,7 +80,7 @@ func expandUrl(shortUrl string) (longUrl string, err error) {
 
 	if randDB != decodeR {
 		// log.Fatal("expandHandler: random extension not matched", shortUrl)
-		return "", errors.New("Error - shortened URL not found")
+		return "", errors.New("Error decodeR - shortened URL not found")
 	}
 	return fullUrl, nil
 }
