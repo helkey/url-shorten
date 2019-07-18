@@ -60,7 +60,7 @@ func shortenHandler(w http.ResponseWriter, r *http.Request) {
 		fmt.Println("ReqShort: reuse existing shortened URL")
 	}
 	_, _, shard := DecodeURL(shortUrl)
-	instance := getInstance() // Cloud instance identifier
+	instance := getShortenInstance() // Cloud instance identifier
 	shortInfo := fmt.Sprintf("%s shard:%v; i:%s", shortUrl, shard, instance)
 	fmt.Fprintf(w, shortInfo)
 	fmt.Println("")
@@ -80,7 +80,7 @@ func shortenUrl(fullUrl string) (shortUrl string, errMsg string) {
 	}
 	// fmt.Printf("ReqShort: addr=%v;  shard=%v  shortUrl=%v\n", addr, shard, shortUrl)
 
-	dB, err := OpenUrlDB(shard, password())
+	dB, err := OpenUrlDB(shard, db_password())
 	if err != nil {
 		return "", "Error accessing URL database"
 	}

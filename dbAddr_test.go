@@ -20,7 +20,7 @@ func init() {
 func TestDbaddr(t *testing.T) {
 	rand.Seed(0) // pick non-random seed
 
-	dB, err := OpenAddrDB(password())
+	dB, err := OpenAddrDB(db_password())
 	assert.Equal(t, nil, err)
 	err = dB.DropTable("addrs")
 	fmt.Println(err)

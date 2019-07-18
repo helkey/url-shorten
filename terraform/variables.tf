@@ -8,6 +8,9 @@ variable "key_name" {
   default = "~/.ssh/authorized_keys/url-key-uswest.pem"
 }
 
+variable "db_password" {
+}
+
 variable "aws_region" {
   description = "AWS region to launch servers."
   default     = "us-west-2"

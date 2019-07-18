@@ -1,5 +1,6 @@
 // db.go
 // go run db.go
+// 
 
 package main
 
@@ -21,12 +22,19 @@ type DB struct {
 	db *sql.DB
 }
 
-func password() string {
-	if len(os.Args) <= 1 {
-		log.Fatal("Supply DB password")
+
+func db_password() (password string) {
+	const db_password_env_variable = "TF_VAR_db_password"
+	if len(os.Args) >1 {
+		return os.Args[1]
 	}
-	return os.Args[1]
+	password = os.Getenv(db_password_env_variable)
+	if password == "" {
+		log.Fatal("DB: export TF_VAR_db_password='password'")
+	}
+	return password
 }
+
 
 // Number of rows in db
 func (dB DB) NumRowsDB(name string) (nRows int, err error) {

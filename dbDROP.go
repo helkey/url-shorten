@@ -14,7 +14,7 @@ func init() {
 }
 
 func InitAddrTable() {
-	dB, _ := OpenAddrDB(password())
+	dB, _ := OpenAddrDB(db_password())
 	nRows, _ := dB.NumRowsDB("addrs")
 	fmt.Printf("DB 'addr' HAD %d rows\n", nRows)
 	dB.DropTable("addrs")
@@ -22,7 +22,7 @@ func InitAddrTable() {
 }
 
 func InitUrlTable(shard int) (DB, error) {
-	dB, err := OpenUrlDB(shard, password())
+	dB, err := OpenUrlDB(shard, db_password())
 	if err != nil {
 		fmt.Println("InitUrlTable: OpenUrlDB failed")
 		return dB, err
