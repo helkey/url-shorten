@@ -2,24 +2,33 @@
   "variables": {
     "aws_access_key": "{{env `AWS_ACCESS_KEY_ID`}}",
     "aws_secret_key": "{{env `AWS_SECRET_ACCESS_KEY`}}"
-  }
+  },
   "builders": [
     {
+      "ami_name": "ami-addr {{timestamp | clean_resource_name}}",
       "access_key": "{{user `aws_access_key`}}",
-      "ami_name": "packer-example {{timestamp | clean_resource_name}}",
+      "secret_key": "{{user `aws_secret_key`}}",
       "communicator": "ssh",
       "instance_type": "t2.micro",
       "region": "us-west-2",
-      "secret_key": "{{user `aws_secret_key`}}",
       "source_ami": "ami-082b5a644766e0e6f",
       "ssh_username": "ubuntu",
       "type": "amazon-ebs"
     }
   ],
-  {
-  "type": "file",
-  "source": "../RequestAddr",
-  "destination": "/tmp/RequestAddr"
-  }
+  "provisioners": [
+    {
+      "type": "file",
+      "source": "../RequestAddr",
+      "destination": "/tmp/RequestAddr"
+    },
+    {
+      "type": "shell",
+	"scripts": [
+	    "installAddr.sh"
+	]
+    }
+  ],
+  "_post-processors": "type: manifest; strip-path: true"
 }
 
