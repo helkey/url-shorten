@@ -6,12 +6,17 @@
 # SSH key file configured through Terraform? cloud-init?
 
 # Run RequestAddr at bootup
-sudo mv /tmp/RequestAddr /etc/init.d RequestAddr
-chmod +x /etc/init.d/RequestAddr
+sudo mv /tmp/RequestAddr /etc/init.d/RequestAddr
+sudo chmod +x /etc/init.d/RequestAddr
 sudo systemctl enable /etc/init.d/RequestAddr
 
 # Remove data scripts before creating AMI
-# rm /var/lib/cloud/instances/instance-id/*
+# $ rm /var/lib/cloud/instances/instance-id/*
 
-sudo systemctl enable /etc/init.d/RequestShort
-
+# Insert provisioner into ami_addr.json
+    {
+      "type": "shell",
+	"scripts": [
+	    "installAddr.sh"
+	]
+    }
