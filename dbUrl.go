@@ -103,7 +103,7 @@ func getShortUrlAllDB(fullUrl string) (shortUrl string, err error) {
 	// TODO: iterate over all shards
 	var dB DB
 	for shard := 0; shard < Nshard; shard++ {
-		dB, err = OpenUrlDB(shard, db_password())
+		dB, err = OpenUrlDB(shard, dbPassword())
 		if err != nil {
 			return
 		}

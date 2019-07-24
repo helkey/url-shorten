@@ -27,7 +27,7 @@ func main() {
 	}
 
 	shard := 0
-	dB, _ := OpenUrlDB(shard, db_password())
+	dB, _ := OpenUrlDB(shard, dbPassword())
 	nRows, _ := dB.NumRowsDB("url")
 	fmt.Printf("DB 'url' HAS %d rows\n", nRows)
 
@@ -65,7 +65,7 @@ func expandUrl(shortUrl string) (longUrl string, err error) {
 	}
 
 	// Lookup randExt and fullURL (given database shard)
-	dB, err := OpenUrlDB(shard, db_password())
+	dB, err := OpenUrlDB(shard, dbPassword())
 	if err != nil {
 		return "", errors.New("Error accessing URL database")
 	}

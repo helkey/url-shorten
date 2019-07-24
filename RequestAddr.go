@@ -49,7 +49,7 @@ func addrHandle(w http.ResponseWriter, r *http.Request) {
 // Queue base addresses for assignment using buffered go channel
 func sendBaseAddr(chBase chan uint64) {
 	const SLEEPSEC = 1
-	passwd := db_password()
+	passwd := dbPassword()
 	for {
 		// Open/close DB on each iteration
 		dB, err := OpenAddrDB(passwd)

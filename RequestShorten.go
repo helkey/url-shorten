@@ -80,7 +80,7 @@ func shortenUrl(fullUrl string) (shortUrl string, errMsg string) {
 	}
 	// fmt.Printf("ReqShort: addr=%v;  shard=%v  shortUrl=%v\n", addr, shard, shortUrl)
 
-	dB, err := OpenUrlDB(shard, db_password())
+	dB, err := OpenUrlDB(shard, dbPassword())
 	if err != nil {
 		return "", "Error accessing URL database"
 	}

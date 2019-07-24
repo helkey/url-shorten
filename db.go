@@ -22,17 +22,29 @@ type DB struct {
 	db *sql.DB
 }
 
+// Specify db password as compile-time argument
+//   e.g. go build -ldflags "-X db.db_password=$TF_VAR_db_password"
+var db_password string
 
-func db_password() (password string) {
-	const db_password_env_variable = "TF_VAR_db_password"
+func dbPassword() (password string) {
+	// db password from environment variable
+	const password_env_variable = "TF_VAR_db_password"
+	password = os.Getenv(password_env_variable)
+	if password == "" {
+		log.Fatal("DB: export " + password_env_variable + ": no password'")
+	}
+	return password
+
+	// db password from run-time argument
 	if len(os.Args) >1 {
 		return os.Args[1]
 	}
-	password = os.Getenv(db_password_env_variable)
-	if password == "" {
-		log.Fatal("DB: export TF_VAR_db_password='password'")
+
+	// NOT WORKING: db password from compile-time argument
+	if db_password == "" {
+		log.Fatal("Supply password as compile time argument")
 	}
-	return password
+	return db_password
 }
 
 
