@@ -1,7 +1,8 @@
 {
     "variables": {
-    "aws_access_key": "{{env `AWS_ACCESS_KEY_ID`}}",
-    "aws_secret_key": "{{env `AWS_SECRET_ACCESS_KEY`}}"
+	"aws_access_key": "{{env `AWS_ACCESS_KEY_ID`}}",
+	"aws_secret_key": "{{env `AWS_SECRET_ACCESS_KEY`}}",
+	"db_password": "{{env `TF_VAR_db_password`}}"
     },
     "builders": [{
 	"type": "amazon-ebs",
@@ -21,19 +22,23 @@
 	"ssh_username": "ubuntu",
 	"ami_name": "ami-addr {{timestamp}}"
     }],
-  "provisioners": [
+    "provisioners": [
     {
       "type": "file",
-      "source": "../RequestAddr",
-      "destination": "/tmp/RequestAddr"
+      "source": "../ReqAddr",
+      "destination": "/tmp/ReqAddr"
     },
     {
-      "inline": [
-        "rm /tmp/RequestAddr"
+      "type": "shell",
+      "environment_vars": [
+        "TF_VAR_db_password=rj_59_azazaz"
       ],
-      "type": "shell"
+      "inline": [
+         "sudo chmod +x /tmp/ReqAddr",
+         "sudo mv /tmp/ReqAddr /var/lib/cloud/scripts/per-boot/",
+         "sudo mkdir /var/www"
+      ]
     }
-  ],
-  "_post-processors": "type: manifest; strip-path: true"
+  ]
 }
 

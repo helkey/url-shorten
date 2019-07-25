@@ -24,9 +24,11 @@ type DB struct {
 
 // Specify db password as compile-time argument
 //   e.g. go build -ldflags "-X db.db_password=$TF_VAR_db_password"
-var db_password string
+var db_password string = "rj_59_azazaz"
 
 func dbPassword() (password string) {
+	return db_password
+	
 	// db password from environment variable
 	const password_env_variable = "TF_VAR_db_password"
 	password = os.Getenv(password_env_variable)

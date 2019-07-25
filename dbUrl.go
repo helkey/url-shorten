@@ -16,7 +16,7 @@ import (
 
 // Host, port for Url database shards
 func hostUrlDB(shard int) (string, int) {
-	return hostUrl[shard], portUrl
+	return hostsDbShard[shard], portUrl
 }
 
 // Open Url database (for given shard)
