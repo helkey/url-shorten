@@ -4,19 +4,11 @@
 // value = "${aws_elb.web.dns_name}"
 //}
 
-output "addr_shard_0" {
-  value = "${aws_db_instance.shard0.address}"
-  //     = "${aws_db_instance.shard0.id}" # id
-  //     = "${aws_db_instance.shard0.endpoint}" # endpoint w/port
-  // id of subnet group: aws_db_subnet_group.db_subnet_group.id
-}
-
-output "id_shard_0" {
-  value = "${aws_db_instance.shard0.id}"
-}
-
-output "endpoint_shard_0" {
-  value = "${aws_db_instance.shard0.endpoint}"
+// output "addr_shard0" {
+output "addr_dbAddr" {
+  // value = "${aws_db_instance.db_shard0.address}"
+  value = "${aws_db_instance.db_addr.address}"
+  // also: id of subnet group: aws_db_subnet_group.db_subnet_group.id
 }
 
 

@@ -17,8 +17,12 @@ var grayList = map[string]struct{}{"box.com": {}, "dropbox.com": {}, "googlemaps
 const NcharA = 9     // number chars for encoded address
 const NcharR = 3     // number additional random chars
 const NcharRLong = 5 // additional random chars for higher security
-const NshardBits = 3 // number of bits used to encode database shard number
-const Nshard = 8     // (1 << NshardBits) number of key-val database shards>
+
+// Test with 2 database shards to minimize resources
+const NshardBits = 1 // number of bits used to encode database shard number
+const Nshard = 2     // (1 << NshardBits) number of key-val database shards>
+// const NshardBits = 3 // number of bits used to encode database shard number
+// const Nshard = 8     // (1 << NshardBits) number of key-val database shards>
 
 // Character encoding
 const Ndig = 10              // number of digits

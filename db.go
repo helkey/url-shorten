@@ -38,11 +38,11 @@ func dbPassword() (password string) {
 	return password
 
 	// db password from run-time argument
-	if len(os.Args) >1 {
+	if len(os.Args) > 1 {
 		return os.Args[1]
 	}
 
-	// NOT WORKING: db password from compile-time argument
+	// db_password from compile-time argument
 	if db_password == "" {
 		log.Fatal("Supply password as compile time argument")
 	}

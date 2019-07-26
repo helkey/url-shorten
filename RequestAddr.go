@@ -9,27 +9,30 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
-	// "os"
+	"os"
 	"time"
 )
 
 var chAddr chan uint64
 
 func main() {
-	rand.Seed(time.Now().UnixNano()) // initialize random seed
-	if INITIALIZEDB {
+	// Initialize adddress database
+	if (len(os.Args) > 1) && os.Args[1] == "InitAddr" {
+		fmt.Println("Initializing addr database")
 		InitAddrTable()
-		rand.Seed(0) // deterministic seed for testing
+		return
 	}
 
 	const gochanDepth = 1
+	rand.Seed(time.Now().UnixNano()) // initialize random seed
 	chAddr = make(chan uint64, gochanDepth)
 	go sendBaseAddr(chAddr)
 
 	fmt.Println("ReqAddr: launched")
 	http.HandleFunc("/addr", addrHandle)
-	// USE ListenAndServeTLS() for https service
+	// http service:
 	log.Fatal(http.ListenAndServe(UrlAddrServer, nil))
+	// https service: USE ListenAndServeTLS()
 }
 
 var shard int = 0 // Database shard assigned for address range

@@ -13,7 +13,7 @@ import (
 	"math/rand"
 	"time"
 
-	_ "github.com/lib/pq"
+	_ "github.com/lib/pq" // PostGres database
 )
 
 func OpenAddrDB(passwd string) (dB DB, err error) {

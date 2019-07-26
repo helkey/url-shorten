@@ -1,0 +1,11 @@
+
+terraform apply DATABASE
+>DB host addr into network.go
+compile ReqAddr
+
+cd packer
+packer build ami_addr.json
+  >AMI # into instance (addr.tf, ...)
+packer build ami_url.json
+  >AMI # into instance (url.tf, ...)
+terraform apply

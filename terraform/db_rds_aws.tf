@@ -1,10 +1,12 @@
-// URL database shards
+// Addr database; URL database shards
 // $ export TF_VAR_password=passwd
 
 // Example: www.terraform.io/docs/providers/aws/r/db_instance.html
 // Update parameters within DB parameter group, changes apply to all parameter group DB instances
-resource "aws_db_instance" "shard0" {
-  name                    = "url_shard0"
+// resource "aws_db_instance" "db_shard0" {
+resource "aws_db_instance" "db_addr" {
+  // name                    = "db_shard0"
+  name                    = "db_addr"
   allocated_storage       = 20 # GB
   // backup_retention_period  = 7   # days
   // db_subnet_group_name     = "${var.**}"
@@ -18,12 +20,13 @@ resource "aws_db_instance" "shard0" {
                                     //  or modify afterward using AWS 
   port                    = 5433
   publicly_accessible     = true
-  // storage_encrypted    = {true} # Encryption not supported on db.t2.micro 
+  // storage_encrypted    = {Encryption not supported on db.t2.micro}
   skip_final_snapshot     = true
   storage_type            = "gp2"
   username = "postgres"
   vpc_security_group_ids   = ["${aws_security_group.db.id}"]
 }
+
 
 resource "aws_security_group" "db" {
   // vpc_id      = "${aws_vpc.default.id}"
@@ -44,7 +47,8 @@ resource "aws_security_group" "db" {
 
 // resource "aws_db_subnet_group" "db_subnet_group" {
 //  name       = "main"
-//  subnet_ids = ["${aws_subnet.default.id}"] # NEED to specify subnets from two regions
+//# DBs need subnets from two regions to meet avail requirements
+//  subnet_ids = ["${aws_subnet.default.id}"] 
 //
 //  tags = {
 //    Name = "My DB subnet group"
