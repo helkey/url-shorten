@@ -19,26 +19,8 @@
 	    "most_recent": true
 	},
 	"instance_type": "t2.micro",
-	"ssh_username": "ubuntu",
+	"ssh_username": "root",
 	"ami_name": "ami-addr {{timestamp}}"
-    }],
-    "provisioners": [
-    {
-      "type": "file",
-      "source": "../ReqAddr",
-      "destination": "/tmp/ReqAddr"
-    },
-    {
-      "type": "shell",
-      "environment_vars": [
-        "TF_VAR_db_password=rj_59_azazaz"
-      ],
-      "inline": [
-         "sudo chmod +x /tmp/ReqAddr",
-         "sudo mv /tmp/ReqAddr /var/lib/cloud/scripts/per-boot/",
-         "sudo mkdir /var/www"
-      ]
-    }
-  ]
+    }]
 }
 
