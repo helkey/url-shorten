@@ -32,7 +32,7 @@ func main() {
 	fmt.Printf("DB 'url' HAS %d rows\n", nRows)
 
 	http.HandleFunc("/", expandHandler)
-	log.Fatal(http.ListenAndServe(UrlExpand, nil))
+	log.Fatal(http.ListenAndServe(PortExpand, nil))
 }
 
 func expandHandler(w http.ResponseWriter, r *http.Request) {

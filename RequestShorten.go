@@ -11,12 +11,21 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
+	"os"
 	"time"
 )
 
 var chAddrSh = make(chan AddrShard) // Go chan for buffering addr values
 
 func main() {
+	// Initialize url database
+	if (len(os.Args) > 1) && os.Args[1] == "InitUrl" {
+		fmt.Println("Initializing URL database")
+		InitUrlTable(0)
+		InitUrlTable(1)
+		return
+	}
+
 	// Set up channel to supply channel addresses
 	// fmt.Println("RequestShorten: go chan 'getAddr'")
 	go getAddr(UrlAddrServer, chAddrSh)
@@ -33,7 +42,7 @@ func main() {
 
 	fmt.Println("ReqShorten: listening")
 	http.HandleFunc("/create/", shortenHandler)
-	log.Fatal(http.ListenAndServe(UrlShorten, nil))
+	log.Fatal(http.ListenAndServe(PortShorten, nil))
 }
 
 func shortenHandler(w http.ResponseWriter, r *http.Request) {

@@ -31,7 +31,7 @@ func main() {
 	fmt.Println("ReqAddr: launched")
 	http.HandleFunc("/addr", addrHandle)
 	// http service:
-	log.Fatal(http.ListenAndServe(UrlAddrServer, nil))
+	log.Fatal(http.ListenAndServe(PortAddr, nil))
 	// https service: USE ListenAndServeTLS()
 }
 

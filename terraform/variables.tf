@@ -19,7 +19,7 @@ variable "public_key_path" {
 variable "addr_amis" {
   description = "Amazon instance machine images"
   default = {
-    us-west-1 = "ami-065033204f8aad05a" // Packer AMI
+    us-west-1 = "ami-0457acb92e27240ab" // Packer AMI
   }
 }
 
