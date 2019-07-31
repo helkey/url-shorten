@@ -2,6 +2,7 @@
 terraform apply DATABASE
 >DB host addr into network.go
 compile ReqAddr
+run ReqAddr InitAddr # initialize database tables
 
 cd packer
 packer build ami_addr.json

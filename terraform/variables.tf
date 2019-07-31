@@ -3,8 +3,9 @@ variable "aws_region" {
   default     = "us-west-1"
 }
 
-// variable "db_password" {
-//}
+variable "db_password" {
+  description = "Password for addr and url databases"
+}
 
 variable "key_name" {
   default = "aws_key"
@@ -18,8 +19,7 @@ variable "public_key_path" {
 variable "addr_amis" {
   description = "Amazon instance machine images"
   default = {
-    us-west-1 = "ami-056ee704806822732" // Unmodifed Amazon AMI
-    us-west-2 = "ami-052d9eee6d5a9bf35"
+    us-west-1 = "ami-065033204f8aad05a" // Packer AMI
   }
 }
 

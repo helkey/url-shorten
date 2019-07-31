@@ -4,13 +4,12 @@ package main
 
 import "os"
 
-const UrlAddrServer = "127.0.0.1:8088" // 12.0.0.1 (IPv6 ::1)
-const UrlShorten = "127.0.0.1:8086"    // 12.0.0.1 (IPv6 ::1)
-const UrlExpand = "127.0.0.1:8090"     // 12.0.0.1 (IPv6 ::1)
+const UrlAddrServer = ":8088" // 12.0.0.1 (IPv6 ::1)
+const UrlShorten = ":8088"
+const UrlExpand = ":8088" // "127.0.0.1:8090"
 
 // const hostAddr = "localhost" // "127.0.0.1"
-// us-west-2: terraform-20190725210533958800000002.cbeqcb3c0hcc.us-west-2.rds.amazonaws.com"
-const hostAddr = "terraform-20190725225000412400000002.cbnrinnowc9a.us-west-1.rds.amazonaws.com" // us-west-1
+const hostAddr = "terraform-20190730164638380000000002.cbnrinnowc9a.us-west-1.rds.amazonaws.com"
 const portAddr = 5433
 
 // URL DB shard IP addresses ('Nshard' shards)
