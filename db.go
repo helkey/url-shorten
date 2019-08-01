@@ -1,18 +1,17 @@
 // db.go
 // go run db.go
-// 
+//
 
 package main
 
 import (
 	"database/sql"
-	"log"
 	"os"
 )
 
 const (
 	dbType = "postgres"
-	dbUser   = "postgres"
+	dbUser = "postgres"
 	dbName = "postgres"
 )
 
@@ -22,33 +21,26 @@ type DB struct {
 	db *sql.DB
 }
 
-// Specify db password as compile-time argument
-//   e.g. go build -ldflags "-X db.db_password=$TF_VAR_db_password"
-var db_password string = "rj_59_azazaz"
-
 func dbPassword() (password string) {
-	return db_password
-	
-	// db password from environment variable
-	const password_env_variable = "TF_VAR_db_password"
-	password = os.Getenv(password_env_variable)
-	if password == "" {
-		log.Fatal("DB: export " + password_env_variable + ": no password'")
-	}
-	return password
-
 	// db password from run-time argument
 	if len(os.Args) > 1 {
 		return os.Args[1]
 	}
 
-	// db_password from compile-time argument
-	if db_password == "" {
-		log.Fatal("Supply password as compile time argument")
-	}
+	// Specify db password as compile-time argument
+	//   e.g. go build -ldflags "-X db.db_password=$TF_VAR_db_password"
+	const db_password = "rj_59_azazaz"
 	return db_password
-}
 
+	/* db password from environment variable
+	const password_env_variable = "TF_VAR_db_password"
+	password = os.Getenv(password_env_variable)
+	if password == "" {
+		log.Fatal("DB: export " + password_env_variable + ": no password'")
+	}
+	fmt.Println(password)
+	return password */
+}
 
 // Number of rows in db
 func (dB DB) NumRowsDB(name string) (nRows int, err error) {

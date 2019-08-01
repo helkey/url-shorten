@@ -12,27 +12,29 @@
 	"source_ami_filter": {
 	    "filters": {
 		"virtualization-type": "hvm",
-		"name": "ubuntu/images/*ubuntu-xenial-16.04-amd64-server-*",
+		"name": "amzn2-ami-hvm-2.0.*-x86_64-gp2",
 		"root-device-type": "ebs"
 	    },
-	    "owners": ["099720109477"],
+	    "owners": ["137112412989"],
 	    "most_recent": true
 	},
 	"instance_type": "t2.micro",
-	"ssh_username": "ubuntu",
-	"ami_name": "ami-addr {{timestamp}}"
+	"ssh_username": "ec2-user",
+	"ami_name": "ami-short {{timestamp}}"
     }],
       "provisioners": [
     {
       "type": "file",
-      "source": "../ReqAddr",
-      "destination": "/tmp/ReqAddr"
+      "source": "../ReqShort",
+      "destination": "/tmp/ReqShort"
     },
     {	  
       "type": "shell",
       "inline": [
-         "sudo yum -y update",
-	 "sudo chmod 700 /tmp/ReqAddr"
+        "sudo chmod 700 /tmp/ReqShort",
+        "sudo mv /tmp/ReqShort /var/lib/cloud/scripts/per-boot/",
+        "sleep 30",
+        "sudo yum -y update"
       ]
     }]
 }

@@ -64,22 +64,3 @@ resource "aws_default_vpc" "default" {
 }
 
 
-resource "aws_instance" "addr_server" {
-  ami = "${lookup(var.addr_amis, var.aws_region)}"
-  // ami = "ami-056ee704806822732" // Unmodifed Amazon AMI (us-west-1)
-  instance_type = "t2.micro"
-  key_name = "${var.key_name}"
-  vpc_security_group_ids = [aws_security_group.instance.id]
-
-  //  Instance 'smoke test'
-  //user_data = <<-EOF
-  //            #!/bin/bash
-  //            echo "Hello, World" > index.html
-  //            nohup busybox httpd -f -p 8080 &
-  //            EOF
-  
-  tags = {
-    Name = "Unmodifed AMI ...2732"
-  }
-}
-

@@ -2,7 +2,7 @@
 
 // RequestShorten
 // go run RequestShorten.go addr.go db.go dbAddr.go dbDROP.go dbUrl.go encode.go network.go 'passwd
-// localhost:8086/create/?source=&url=http://FullURL
+// localhost:8088/create/?source=&url=http://FullURL
 
 package main
 
@@ -19,7 +19,7 @@ var chAddrSh = make(chan AddrShard) // Go chan for buffering addr values
 
 func main() {
 	// Initialize url database
-	if (len(os.Args) > 1) && os.Args[1] == "InitUrl" {
+	if (len(os.Args) > 1) && os.Args[1] == "init" {
 		fmt.Println("Initializing URL database")
 		InitUrlTable(0)
 		InitUrlTable(1)

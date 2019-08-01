@@ -17,7 +17,7 @@ var chAddr chan uint64
 
 func main() {
 	// Initialize adddress database
-	if (len(os.Args) > 1) && os.Args[1] == "InitAddr" {
+	if (len(os.Args) > 1) && os.Args[1] == "init" {
 		fmt.Println("Initializing addr database")
 		InitAddrTable()
 		return
@@ -59,22 +59,18 @@ func sendBaseAddr(chBase chan uint64) {
 		if err != nil {
 			fmt.Println("ERR RequestAddr: OpenDB")
 			time.Sleep(SLEEPSEC * time.Second)
+			dB.db.Close()
 			continue
 		}
 		// fmt.Println("ReqAddr: getRandAddr")
 		addr, err := dB.GetRandAddr()
+		dB.db.Close()
 		if err != nil {
 			fmt.Println("ERR ReqAddr: getRandAddr", err)
 			time.Sleep(SLEEPSEC * time.Second)
 			continue
 		}
-		dB.db.Close()
 
-		if err != nil {
-			fmt.Println("ERR RequestAddr: ", err)
-			time.Sleep(SLEEPSEC * time.Second)
-			continue
-		}
 		// Blocks when gochan buffer full
 		fmt.Println("ReqAddr QUEUE: ", addr)
 		chAddr <- addr
