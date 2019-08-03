@@ -1,3 +1,5 @@
+// See docs.aws.amazon.com/vpc/latest/userguide/VPC_Scenario2.html
+
 # Specify the provider and access details
 provider "aws" {
   profile = "default"
