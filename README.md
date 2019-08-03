@@ -85,11 +85,18 @@ turn minimizes wasted data storage due to multiple shortened versions of the sam
 Caching also reduces load on the URL database when many users are requesting access to the same shortened URL, by storing common
 resent requests in cache.
 
+### Load Balancer
+Kubernetes, AWS (Docker??)
+Caddylightweight ingress service
+  https://www.ardanlabs.com/blog/2019/07/caddy-partnership-light-code-labs.html
+
 
 ### Encode Architecture
 Load balancer
 
 ### Decode Architecture
+Database sharding makes decoding significantly easier.
+
 
 ### Address Range Database
 Highly reliability
@@ -155,18 +162,20 @@ in other URL shorting services.
 
 
 
-## Implementation
+## AWS Implementation
 Load balancer
-
-For convenience, the initial demonstration uses databases implementated using AWS RDS PostgreSql,
-which is well supported by Terraform.
-
-
 
 ## Load Balancer
 ELB (AWS)::
 HAProxy
 nginx
+
+### Database
+For convenience, the initial demonstration uses databases implementated using AWS RDS PostgreSql,
+which is well supported by Terraform.
+
+
+
 
 ## Network Security
 The architecture used here has a public-facing load-balancer, which forwards traffic to the other worker nodes
