@@ -12,11 +12,11 @@ resource "aws_db_instance" "db_addr" {
   // db_subnet_group_name     = "${var.**}"
   // db_subnet_group_name     = "${aws_db_subnet_group.db_subnet_group.id}"
   engine                  = "postgres"
-  engine_version          = "9.5.4"
+  // engine_version          = "9.5.15" // Did auto-upgrade from 9.5.4
   instance_class          = "db.t2.micro"
   // parameter_group_name    = "url_param_group" # NOTE: Not defined yet
 
-  password = "${var.db_password}"   // Password is stored in TF state file. Store state file encrpted,
+  password = "${var.db_password}"   // Password is stored in TF state file. Store state file encrypted,
                                     //  or modify afterward using AWS 
   port                    = 5433
   publicly_accessible     = true

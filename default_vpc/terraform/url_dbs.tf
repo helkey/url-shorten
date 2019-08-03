@@ -11,7 +11,7 @@ resource "aws_db_instance" "db_shard0" {
   // db_subnet_group_name     = "${var.**}"
   // db_subnet_group_name     = "${aws_db_subnet_group.db_subnet_group.id}"
   engine                  = "postgres"
-  engine_version          = "9.5.4"
+  // engine_version          = "9.5.15"
   instance_class          = "db.t2.micro"
   // parameter_group_name    = "url_param_group" # NOTE: Not defined yet
   password = "${var.db_password}"   // Password is stored in TF state file. 
@@ -33,7 +33,7 @@ resource "aws_db_instance" "db_shard1" {
   // db_subnet_group_name     = "${var.**}"
   // db_subnet_group_name     = "${aws_db_subnet_group.db_subnet_group.id}"
   engine                  = "postgres"
-  engine_version          = "9.5.4"
+  // engine_version          = "9.5.15"
   instance_class          = "db.t2.micro"
   // parameter_group_name    = "url_param_group" # NOTE: Not defined yet
   password = "${var.db_password}"   // Password is stored in TF state file. 

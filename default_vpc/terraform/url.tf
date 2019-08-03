@@ -62,7 +62,22 @@ resource "aws_instance" "shorten_server" {
   }
 }
 
+resource "aws_instance" "expand_server" {
+  ami = "${lookup(var.amis_expand, var.aws_region)}"
+  instance_type = "t2.micro"
+  key_name = "${var.key_name}"
+  vpc_security_group_ids = [aws_security_group.instance.id]
 
+  tags = {
+    Name = "Expand server"
+  }
+}
+
+  
 output "shorten_ip" {
   value="${aws_instance.shorten_server.public_ip}"
+}
+
+output "expand_ip" {
+  value="${aws_instance.expand_server.public_ip}"
 }

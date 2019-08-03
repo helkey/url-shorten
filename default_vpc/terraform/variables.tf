@@ -27,14 +27,14 @@ variable "amis_shorten" {
   description = "URL shortener machine images"
   // ami-056ee704806822732" // Unmodifed Amazon AMI (us-west-1)
   default = {
-    us-west-1 = "ami-09342686b51a7152f" // Unmodifed Amazon AMI (us-west-1)
+    us-west-1 = "ami-09342686b51a7152f" // Packer-generated AMI
   }
 }
 
 variable "amis_expand" {
   description = "URL expander machine images"
   default = {
-    us-west-1 = "" // Packer-generated AMI
+    us-west-1 = "ami-0d98e0c1037ad9071" // Packer-generated AMI
   }
 }
 

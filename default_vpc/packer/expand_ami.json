@@ -20,19 +20,19 @@
 	},
 	"instance_type": "t2.micro",
 	"ssh_username": "ec2-user",
-	"ami_name": "ami-addr {{timestamp}}"
+	"ami_name": "ami-expand {{timestamp}}"
     }],
       "provisioners": [
     {
       "type": "file",
-      "source": "../ReqAddr",
-      "destination": "/tmp/ReqAddr"
+      "source": "../ReqExpand",
+      "destination": "/tmp/ReqExpand"
     },
     {	  
       "type": "shell",
       "inline": [
-        "sudo chmod 700 /tmp/ReqAddr",
-        "sudo mv /tmp/ReqAddr /var/lib/cloud/scripts/per-boot/",
+        "sudo chmod 700 /tmp/ReqExpand",
+        "sudo mv /tmp/ReqExpand /var/lib/cloud/scripts/per-boot/",
         "sleep 30",
         "sudo yum -y update"
       ]

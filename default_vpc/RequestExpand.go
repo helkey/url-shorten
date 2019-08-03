@@ -1,6 +1,7 @@
 // RequestExpand
 // go run RequestExpand.go addr.go db.go dbAddr.go dbUrl.go dbDrop.go encode.go network.go 'passwd'
-//   localhost:8090/L6X000000bmG
+//   localhost:8088/L6X000000bmG
+//   http://13.52.104.24:8088/4oo0000Jg3gA (KareN)
 
 package main
 
@@ -20,16 +21,10 @@ func init() {
 }
 
 func main() {
-	if INITIALIZEDB {
-		longUrl, err := expandUrl("ejK0000A86RV")
-		fmt.Println("ReqExp: long=", longUrl, err)
-		return
-	}
-
 	shard := 0
 	dB, _ := OpenUrlDB(shard, dbPassword())
 	nRows, _ := dB.NumRowsDB("url")
-	fmt.Printf("DB 'url' HAS %d rows\n", nRows)
+	fmt.Printf("DB shard%d 'url' HAS %d rows\n", shard, nRows)
 
 	http.HandleFunc("/", expandHandler)
 	log.Fatal(http.ListenAndServe(PortExpand, nil))

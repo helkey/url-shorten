@@ -1,6 +1,7 @@
 // RequestShorten
 // go run RequestShorten.go addr.go db.go dbAddr.go dbDROP.go dbUrl.go encode.go network.go 'passwd
 // localhost:8088/create/?source=&url=http://FullURL
+// http://18.144.27.152:8088/create/?source=&url=http://FullURL
 
 package main
 
