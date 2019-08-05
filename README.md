@@ -6,13 +6,16 @@ Well-known URL shorteners include:
   * Bitly: the most popular and one of the oldest URL shorteners is used by Twitter for inserting links in tweets.
   By 2016 they had shortened 26 billion URLs
   * TinyURL. A simple shortener that requires no sign-up and allows users to customize the keyword
-  * Goo.gl (DISCONTINUED): URL shortener written and retired by Google
+  * Goo.gl: URL shortener (DISCONTINUED SERVICE) written and
+     [shut down](https://developers.googleblog.com/2018/03/transitioning-google-url-shortener.html) by Google
 
-Most URL shortener use is free, but Bitly projects [revenue in the range of $100M](https://www.cnbc.com/2016/05/26/web-link-shortening-company-bitly-eyeing-100m-revenues.html)
-  by [providing Enterprise features](https://www.slant.co/versus/2591/22693/~bitly_vs_tinyurl).
+Most URL shortener use is free, but projections for Bitly revenue is in the
+  [range of $100M](https://www.cnbc.com/2016/05/26/web-link-shortening-company-bitly-eyeing-100m-revenues.html),
+  achieved by a freemium model with [paid Enterprise features](https://www.slant.co/versus/2591/22693/~bitly_vs_tinyurl).
+
 
 ## Key Features
-Comparing to the leading ULR shortening service, this design has:
+In contrast to the leading ULR shortening service, the features of this design include:
 
   * Higher security (12-character) standard links instead of 7 characters (Bitly standard links), 8 characters (TinyURL links),
     or 10 characters (Bitly Facebook links).
@@ -66,6 +69,7 @@ URL shortening space for addresses shortened at a similar time. If someone finds
 they can scan all of the other URLs shorted around the same time for a [few hundred dollar](https://arxiv.org/pdf/1604.02734v1.pdf).
 
 
+
 ## URL Encoding
 Counter-based, pseudo-random sequence for increased security
 
@@ -73,7 +77,7 @@ Scalability needs to be accommodated, and the solution needs to support in-servi
 
 The length of shortened URLs needs to be long enough to provide unique results for every URL shortening request.
 In this URL shortening architecture, shortened URLs will be constructed with characters a-z, A-Z, and 0-9,
-for a total of 62 different characters (the same character set used by Bitly for shortening).
+for a total of 62 different characters (the same character set used by Bitly for short URLs).
 
 As an example, examine the address size to support a traffic load of 200 shortened requests/second,
 over a period of 5 years. Seven character URLs would sufficient to meet this initial traffic estimate.
@@ -89,37 +93,23 @@ Scanning a 12-character address space should increase the cost for a full scan f
 which would seem to be sufficiently expensive to make URL scanning unattractive compared to exploiting vulnerabilities
 in competing URL shorting services which are less well protected.
 
-### Encode Architecture
-Load balancer
-
-### Decode Architecture
-Database sharding makes decoding significantly easier.
+### Database Shard Encoding
+Database sharding, where separate databases are used to encode different data,  makes scaling of distributed databases more effient.
+In this project, a database shard is assigned to each shortened URL, allowing the expanded URL to be recovered
+by querying a smaller database than the size that would be required without sharding.
 
 ### Address Range Server / Database
-Highly reliability
-Zookeeper is a [highly reliable distributed datastore](https://aphyr.com/posts/291-call-me-maybe-zookeeper) that is suitable for this task.
-Zookeeper uses majority quorums - using five notes, any two nodes could fail without degrading the system.
-Zookeeper is also linearizable - all clients see the same ordering for updates occurring in the same order.
+In order to allow distributed cloud instances to assign unique shortened URLs, an server is used to allocate encoded address
+ranges to each instance. This address range server needs to be very highly reliable in order to avoid assiging the same shortened URL codes
+to multiple long URLs. Here a centralized server is used to generate small address ranges and assign them to 
+
+A highly reliable distributed datastore such as [Zookeeper](https://aphyr.com/posts/291-call-me-maybe-zookeeper)
+would be a better choice for this address range server task. Zookeeper uses majority quorums - using five notes,
+any two nodes could fail without degrading the system. Zookeeper is also linearizable - all clients see the same ordering
+for updates occurring in the same order.
 
 ### URL Database
-In a commercially successful URL shortener, the service has competition offering free services which puts some limit on customer value.
-A URL shortener without a free tier probably could not compete successfully with services providing
-a free tier. A free URL shortening service acts as advertising for enterprise customers,
-as most users become familiar with the service when copy/pasting in shortened links provided by others.
 
-The data storage requirements are large even for a moderately successful player in this space.
-For the modest example goal of 200 URL shortening request/sec would result over a 5 year period in
-
-    200 * 60sec * 60min * 24hr * 365day * 5year ~ 32 billion shortening requests
-
-The URL database needs to be reliable, but cost is a dominant issue.
-The volume of database writes and reads is high, so operational costs are high.
-As a result, a managed database like AWS RDS might not be commercially feasible for this application.
-
-The required URL mapping could be implemented in a distributed key-value database.
-A promising distributed database might be the open source *etcd* database, written in Go,
-which uses the Raft consensus algorithm. Other candidate [distributed key-value
-stores](https://www.g2.com/categories/key-value-stores) include Aerospike, ArandoDB, BoltDB, CouchDB, Google Cloud Datastore, Hbase, and Redis.
 
 ### URL Database Sharding / Replicas
 Database access to store the mapping from shortened URLs to URLs can be a
@@ -225,20 +215,79 @@ infrastructure state changes.
 features for larger teams, including operations features such as team management and a configuration designer tool,
 and governance features such as audit logging.
 
+
 ### AWS Infrastructure
+Terraform uses a 'provider' to specify where/how to depoly the specified resoures.
+Here the region is specified in a variable 'aws_region'. Values for all of the variables
+can be specified in a *.tfvars file, which allows easy support of multiple regions from
+the same 
+```terraform
+// terraform/aws_provider.tf
+provider "aws" {
+  profile = "default"
+  region = "${var.aws_region}"
+  version = "~> 2.20"
+}
+
+resource "aws_key_pair" "auth" {
+  key_name   = "${var.key_name}"
+  public_key = "${file(var.public_key_path)}"
+}
+
+resource "aws_security_group" "instance" {
+  name = "terraform-example-instance"
+
+  // SSH access from anywhere
+  ingress {
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  // other ports
+  ...
+```
+###
+
+### Address and URL Servers
+
 
 ```terraform
+resource "aws_instance" "addr_server" {
+  ami = "${lookup(var.amis_addr, var.aws_region)}"
+  // ami = "ami-056ee704806822732" // Unmodifed Amazon AMI (us-west-1)
+  instance_type = "t2.micro"
+  key_name = "${var.key_name}"
+  vpc_security_group_ids = [aws_security_group.instance.id]
+
+  //  Instance 'smoke test'
+  //user_data = <<-EOF
+  //            #!/bin/bash
+  //            echo "Hello, World" > index.html
+  //            nohup busybox httpd -f -p 8080 &
+
 ```
 
 ### Address and URL Databases
-For convenience, the initial project uses databases implemented using AWS RDS PostgreSql,
-which is well supported by Terraform.
+For convenience, so far project uses databases implemented using AWS RDS PostgreSql,
+which is supported by Terraform.
 
 ```terraform
+resource "aws_db_instance" "db_shard0" {
+  name                    = "db_shard0"
+  allocated_storage       = 20 # GB
+  engine                  = "postgres"
+  instance_class          = "db.t2.micro"
+  password = "${var.db_password}"
+  port                    = 5433
+  publicly_accessible     = true
+  skip_final_snapshot     = true
+  storage_type            = "gp2"
+  username = "postgres"
+  vpc_security_group_ids   = ["${aws_security_group.db.id}"]
 ```
 
 ## Next Generation Architecture
-
 The next steps for this project are to move the databases to a private subnet,
 set up a network address translation server for access from the private subnet,
 implement load balancers with multiple URL shorten and expand servers,
@@ -249,15 +298,26 @@ utilizing lower cost AWS spot instance, and investigating less expensive databas
 
 
 ### Private Subnet
-AWS example
 
 ```terraform
 ```
 
 ### NAT server
-A network address translation (NAT) server can provide a number of functions...
+A network address translation (NAT) server can provide a number of functions.
+Amazon provides an AMI for a cloud instance designed as a NAT server.
 
 ```terraform
+resource "aws_security_group" "nat" {
+  name = "vpc_nat"
+  description = "Allow traffic to pass from the private subnet to the internet"
+  ingress {
+    from_port = 22
+    to_port = 22
+    protocol = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  ...
+  
 ```
 
 ### Load Balancer
@@ -266,11 +326,82 @@ Kubernetes, AWS (Docker??)
 Caddylightweight ingress service
   https://www.ardanlabs.com/blog/2019/07/caddy-partnership-light-code-labs.html
 ELB (AWS)::
-HAProxy
+oHAProxy
 nginx
 
 ```terraform
+# Create a new load balancer
+resource "aws_elb" "url" {
+  name               = "foobar-terraform-elb"
+  availability_zones =["${var.aws_region}"]
+
+  access_logs {
+    // bucket        = "foo"
+    bucket_prefix = "url"
+    interval      = 60
+  }
+
+  listener {
+    instance_port     = "${var.port_internal}"
+    instance_protocol = "http"
+    lb_port           = 80
+    lb_protocol       = "http"
+  }
+
+  listener {
+    instance_port      = "${var.port_internal}"
+    instance_protocol  = "http"
+    lb_port            = 443
+    lb_protocol        = "https"
+    ssl_certificate_id = "arn:aws:iam::**TBD**:server-certificate/certName"
+  }
+
+  health_check {
+    healthy_threshold   = 2
+    unhealthy_threshold = 2
+    timeout             = 4
+    target              = "HTTP:" + "${var.port_internal}"
+    interval            = 25
+  }
+
+  instances                   = ["${aws_instance.url.id}"]
+  cross_zone_load_balancing   = true
+  idle_timeout                = 500
+  connection_draining         = true
+  connection_draining_timeout = 500
+
+  tags = {
+    Name = "url_elb"
+  }
+}
 ```
+
+### Server autoscaling
+[autoscaling](https://www.terraform.io/docs/providers/aws/r/launch_configuration.html)
+
+```
+resource "aws_launch_configuration" "url" {
+  image_id        = "ami-0c55b159cbfafe1f0"
+  instance_type   = "t2.micro"
+  security_groups = [aws_security_group.instance.id]
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+resource "aws_autoscaling_group" "auto" {
+  name                 = "url_autoscaling_group"
+  launch_configuration = "${aws_launch_configuration.url}"
+  min_size             = 1
+  max_size             = 8
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+```
+
 
 ### Bastion Host
 The architecture used here has a public-facing load-balancer, which forwards traffic to the other worker nodes
@@ -287,8 +418,6 @@ use ssh agent configured with agent forwarding from the client computer to avoid
   [store the private key on the bastion computer](https://aws.amazon.com/blogs/security/securely-connect-to-linux-instances-running-in-a-private-amazon-vpc/)
 
 
-
-
 ```terraform
 ```
 
@@ -299,12 +428,13 @@ AWS and other platforms have direct support for autoscaling features
 ```
 
 ### Caching
-Caching is another performance enhancing feature which is important (not included in current algorithm implementation).
+Caching is another performance enhancing feature which is important (although not included in current algorithm implementation).
 A caching system (such as Redis or Memcache) will save responses to recent queries.
 When requesting a shortened URL, caching will intercept frequent requests to provide shortened URLs for the same long URL,
 which in turn minimizes wasted data storage due to multiple shortened versions of the same URL that would otherwise occur.
 Caching also reduces load on the URL database when many users are requesting access to the same shortened URL,
 by storing common resent requests in cache.
+
 
 ### AWS Spot Instances
 AWS has reserved instances which can be held and operated as long as you like.
@@ -316,13 +446,36 @@ maintained at a baseline level to ensure meeting service level availability obje
 
 In addition, instances need to handle the `shutdown -h` termination message promptly and
 reliabably.
+### Continuous Integration
+Continuous integration (CI) and continuous deliver (CD) are important for teams delivering high quality software.
+AWS CodeBuild & CodeDeploy provides CI/CD from GitHub code to AWS EC2 server instances.
+CircleCI is a very popular open-source CI/CD solution.
+
 
 ### Database alternatives
+A commercially successful URL shortener service will have competition offering free URL shortening,
+which puts some limit on value can be extracted from the customer base.
+A URL shortener without a free tier probably could not compete successfully with successful services,
+which to provide free use to most customer.
 
-### Continuous Integration
-CircleCI
+A free URL shortening service is probably necessary, as it acts as advertising for enterprise customers,
+and most users will become familiar with the service when copy/pasting in shortened links provided by others.
 
-CI/CD from GitHub to EC2 using AWS CodeBuild & CodeDeploy
+The data storage requirements are large even for a moderately successful player in this space.
+For the modest example goal of 200 URL shortening request/sec would result over a 5 year period in
+
+    200 * 60sec * 60min * 24hr * 365day * 5year ~ 32 billion shortening requests
+
+The URL database needs to be reliable, but cost is a dominant issue.
+The volume of database writes and reads is high, so operational costs are high.
+As a result, a managed database like AWS RDS might not be commercially feasible for this application.
+
+The required URL mapping could be implemented in a distributed key-value database.
+Popular [distributed database](https://www.g2.com/categories/key-value-stores)
+  candidates include Aerospike, ArandoDB, BoltDB, CouchDB, Google Cloud Datastore, Hbase, and Redis.
+A promising distributed database written in Go is the open source *etcd* database, 
+which uses the Raft consensus algorithm.
+
 
 ## Infrastructure Orchestration
 Terraform was used here for provisioning cloud resources due to its simplicity and ease of use.
@@ -334,8 +487,8 @@ Kubernetes was developed at Google, and has become an extremely popular recently
 In 2015, container survey found just 10 percent of respondents were using any container orchestration tool.
 Two years, 71% of respondents were [using Kubernetes to manage their containers]().
 
-Kubernetes is particularly well suited for a hybrid server use case, for example where some of the resources
-are in an on-prem data center, and other resources are in the cloud.
+Kubernetes is particularly well suited for a hybrid server use case, for example the case
+where some of the resources are in an on-prem data center, and other resources are in the cloud.
 
 
 
