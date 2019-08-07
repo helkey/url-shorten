@@ -1,0 +1,336 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta http-equiv="Content-Style-Type" content="text/css" />
+  <meta name="generator" content="pandoc" />
+  <title></title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <link rel="stylesheet" href="style.css" type="text/css" />
+</head>
+<body>
+<h1 id="url-shortener-design-doc">URL Shortener Design Doc</h1>
+<p>Uniform Record Locator (URL) shorteners are used to access Internet resources, by providing a short URL to a resource that is easily typed and compactly stored. Well-known URL shorteners include:</p>
+<ul>
+<li>Bitly: the most popular and one of the oldest URL shorteners is used by Twitter for inserting links in tweets. By 2016 they had shortened 26 billion URLs</li>
+<li>TinyURL. A simple shortener that requires no sign-up and allows users to customize the keyword</li>
+<li>Goo.gl: URL shortener (DISCONTINUED SERVICE) written and <a href="https://developers.googleblog.com/2018/03/transitioning-google-url-shortener.html">shut down</a> by Google</li>
+</ul>
+<p>Most URL shortener use is free, but projections for Bitly revenue is in the <a href="https://www.cnbc.com/2016/05/26/web-link-shortening-company-bitly-eyeing-100m-revenues.html">range of $100M</a>, achieved by a freemium model with <a href="https://www.slant.co/versus/2591/22693/~bitly_vs_tinyurl">paid Enterprise features</a>.</p>
+<h2 id="key-features">Key Features</h2>
+<p>In contrast to the leading ULR shortening service, the features of this design include:</p>
+<ul>
+<li>Higher security (12-character) standard links instead of 7 characters (Bitly standard links), 8 characters (TinyURL links), or 10 characters (Bitly Facebook links).</li>
+<li>Additional (14-character) security needed for gray-listed sensitive domains (Box, Dropbox, Google Maps, ...)</li>
+<li>Scalability designed into architecture: Cloud-based worker system design, with orchestration for automatic scaling</li>
+<li>Database sharding information encoded into shortened URLS for additional scalability</li>
+</ul>
+<h2 id="user-security">User Security</h2>
+<p>The use of URL shorteners can compromise security as the purpose of URL shorteners is to <a href="https://freedom-to-tinker.com/2016/04/14/gone-in-six-characters-short-urls-considered-harmful-for-cloud-services/">reduce entropy of URLs</a> used to specify websites.</p>
+<p>The address space of shortened URLs can be scanned by adversaries to find URLs that reveal confidential customer information. Perhaps because of these security issues, Google has discontinued their URL shortening service, but maintain service to expand previously shortened URLs and provide clear warnings about risks of using the service even though they no longer provide it. The other major URL shortening services which continue to operate do not provide warnings about security issues in using URL shorteners.</p>
+<div style="margin-left: 150px">
+<img src="figs/GoogleShortenerHighlighted.png" alt="Google Security Warning" style="width:600px;"/>
+</div>
+<p>As a result of reduced URL shortened address space, possible URL shortened addresses can be scanned to find web sites containing:</p>
+<ul>
+<li>Cloud storage URLs for documents such as Box, Dropbox, GoogleDrive, and OneDrive documents. This is a <i>huge</i> security issue. For instance, OneDrive links not only let adversaries edit the document, they can also use this link to <a href="https://arxiv.org/pdf/1604.02734v1.pdf">gain access to other files</a>.</li>
+<li>Map trip description URLs which may include the users identifiable home address linked to destinations. By starting from an address and mapping all endpoints from multiple URLs, one can create a personal connection graph by <a href="https://arxiv.org/pdf/1604.02734v1.pdf">determining who visited whom</a>.</li>
+</ul>
+<p>URL shorteners should provide shortened versions that are long enough to make adversarial scanning unattractive, limit the scanning of large numbers of potential URLs (by CAPTCHAS and IP blocking), and avoid generation of sequential URL addresses.</p>
+<p>The cost of adversarial <a href="https://arxiv.org/pdf/1604.02734v1.pdf">scanning the standard 7-bit Bit.ly address space</a> was $37k in 2016. The cost of Internet transit <a href="http://drpeering.net/white-papers/Internet-Transit-Pricing-Historical-And-Projected.php">dropped 36% per year from 2010-2015</a></p>
+<p>Using these two data points, we can project that by 2022 it will be possible to scan all of a 10-character URL space for around $10M, so even the highest security level that Bitly offers is not good enough for securing the large number of sensitive URLs that are using Bitly to provide URL shortening.</p>
+<div class="figure">
+<img src="figs/ScanningCost.png" title="URL Scanning Cost" />
+
+</div>
+<p>In contrast, this URL shortening project uses 12 characters for the standard baseline security level, which is projected to cost ~$600M for a full scan in 2022. In addition, this project provides shortened URLs for sensitive domains use 14-character addresses, where scanning the entire URL space is projected to cost ~$37B in 2022.</p>
+<p>Another security vulnerability is that URL shortening services may use sequential codes for the shortened URLs, which further reduces security by allowing recipients of a shorted URL to access compromised related URLs. Bitly appears to use a 6-character URL shortening space for addresses shortened at a similar time. If someone finds a sensitive shortened Bitly URL, they can scan all of the other URLs shortened around the same time for a <a href="https://arxiv.org/pdf/1604.02734v1.pdf">few hundred dollar</a>.</p>
+<h2 id="url-encoding">URL Encoding</h2>
+<p>The length of shortened URLs needs to be long enough to provide unique results for every URL shortening request. In this URL shortening architecture, shortened URLs will be constructed with characters a-z, A-Z, and 0-9, for a total of 62 different characters (the same character set used by Bitly for short URLs). As mentioned about, standard URL shortening provides 12-character URLs.</p>
+<h3 id="grey-listing-sensitive-urls">Grey-Listing Sensitive URLs</h3>
+<p>Sensitive URLs like Dropbox URLs or Maps URLs should not be as short as URLs suitable for public access. In this application, URLs from these sensitive domains are gray listed for special processing, initially shortened to 12 characters (for an address space of 3 x 10^21) rather than 10-character addresses for less sensitive URLs.</p>
+<p>Scanning a 12-character address space should increase the cost for a full scan from $37k to $34B (in 2016 prices), which would seem to be sufficiently expensive to make URL scanning unattractive compared to exploiting vulnerabilities in competing URL shorting services which are less well protected.</p>
+<h3 id="database-shard-encoding">Database Shard Encoding</h3>
+<p>Database sharding, where separate databases are used to encode different data, makes scaling of distributed databases more efficient. In this project, a database shard is assigned to each shortened URL, allowing the expanded URL to be recovered by querying a smaller database than the size that would be required without sharding.</p>
+<h3 id="address-range-server-database">Address Range Server / Database</h3>
+<p>The initial implementation here uses shortening servers which provide URL shortening, and an address range server to provide each shortening server with unique sets of addresses. Shortened URLs within this address range are served in random order.</p>
+<p>As mentioned before, using address ranges is a potential security issue, allowing someone with a shortened URL to one of your resources to more easily find other related resources shortened at a similar time. This security issue is mitigated here as different shortener servers have different address ranges, and subsequent shortening requests will likely have completely unrelated addresses. However, further work would be needed to deploy a commercial URL shortening system without any detectable correlation between addresses.</p>
+<p>In order to allow distributed cloud instances to assign unique shortened URLs, a server is used to allocate encoded address ranges to each instance. This address range server needs to be highly reliable in order to avoid assigning the same shortened URL codes to multiple long URLs. Here a centralized server is used to generate small address ranges and assign them to</p>
+<p>A highly reliable distributed datastore such as <a href="https://aphyr.com/posts/291-call-me-maybe-zookeeper">Zookeeper</a> would be a better choice for this address range server task. Zookeeper uses majority quorums - using five notes, any two nodes could fail without degrading the system. Zookeeper is also linearizable - all clients see the same ordering for updates occurring in the same order.</p>
+<h3 id="url-database-sharding-replicas">URL Database Sharding / Replicas</h3>
+<p>Database access to store the mapping from shortened URLs to full URLs can be a bottleneck for performance, limiting the scalability of popular web-based application.</p>
+<p>Database sharding allows the generated data to be split across multiple databases, reducing the traffic load on each database. Here database sharding is implemented as a key part of the software architecture. Database sharding, together with scalable cloud workers to scale resources, should allow this URL shortener project to scale to levels of use similar to commercial competitors (Bit.ly and others)</p>
+<p><a href="https://aws.amazon.com/rds/details/read-replicas/">Database read replicas</a> are useful for read-heavy applications such as this. A URL shortening application is an ideal case for this technology, where database reads and writes come from separate applications.</p>
+<h2 id="initial-implementation">Initial Implementation</h2>
+<p>A scalable URL shortening algorithm was implemented and deployed, using three AWS server instances for the URL shortening server, URL expanding server, and internal address server. Two URL databases were deployed to test database sharding, with an additional database used for the internal address server.</p>
+<p>All of the server instances and databases in this demonstration were deployed to a default AWS public subnet, which allowed easy external access to all of the deployed instances for testing.</p>
+<p>Go channels are used as buffers from the address server to the shortener servers, in order account for data transmission errors which are more likely to occur in network applications.</p>
+<div class="figure">
+<embed src="figs/Shortener_V1.pdf" title="Initial configuration." />
+
+</div>
+<h3 id="aws-cloud-platform">AWS Cloud Platform</h3>
+<p>Amazon Web Services (AWS) was chosen for the initial implementation, as Amazon has over half the cloud computing provider market share, and as a result the most mature software solutions. However, there are many other cloud computing choices. Azure (Microsoft) and Google Cloud Compute are the next most popular cloud computing providers.</p>
+<h3 id="amazon-machine-images">Amazon Machine Images</h3>
+<p>AWS uses Amazon Machine Images (AMIs) to customize and manage cloud instances. The Amazon drawing below shows the lifecycle of an AWS AMI. AMIs can be created and stored, then registered when ready for instantiation. Multiple identical cloud instances can be generated from an AMI. AMIs can be deregistered when no longer needed to free up storage. AWS provides generic AMIs as a starting point for customization, such as the <a href="https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/finding-an-ami.html">Linux 2 AMI</a>.</p>
+<p>The [AMI lifecycle](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/AMIs.html] is:</p>
+<div class="figure">
+<img src="figs/ami_lifecycle.png" title="AMI life cycle" />
+
+</div>
+<p>AMIs can be tagged for identification, such as 'owner', 'development/production', or 'release number'. Tags can help organize your AWS bill, for example for budgeting and accounting purposes.</p>
+<p>AWS provides a <a href="docs.aws.amazon.com/marketplace/latest/userguide/best-practices-for-building-your-amis.html">checklist</a> for AMIs, including:</p>
+<pre><code>Linux-based AMIs that a valid SSH port is open (default is 22)
+...</code></pre>
+<h3 id="infrastructure-as-code">Infrastructure as Code</h3>
+<p>Cloud computing resources can be configured through a graphical user interface (GUI), but this process is error-prone, and produces results that cannot always be repeated. It is far better to specify cloud resources with code, which allows for version control, releases, version rollback, and many other features.</p>
+<p>Containers have become a popular for server configuration, ensuring consistency between development and release cycles, and between local testing and cloud-based deployment. Docker is a container solution often used to provide platform independence and ease of managing resources.</p>
+<p>The server software for this project consists of a single Go binary per instance. The Go language packages all dependencies into a single executable, and seems like an adequate solution for this URL shortening application without adding support for production containers.</p>
+<h3 id="packer">Packer</h3>
+<p><a href="https://www.packer.io/">Packer</a> is used in this project for generating the AWS cloud instance images. AMIs can be configured manually, for example by launching a generic AMI, customizing from the command line, then save updated the updated AIM with a new name. However, it would be much better to configure AWS AMIs as code for the reasons listed above (e.g. documentation and repeatability).</p>
+<p>Packer (like Docker) allows building a single configuration management supporting multiple target platforms, with support for cloud environments such as AWS, Azure, Google Cloud, as well as desktop environments such as Linux, Windows, and Macintosh environments. Packer also integrates with software platforms such as Docker, Kubernetes, and VMware.</p>
+<p>For complex configurations, Packer interfaces with popular configuration management tools such as Chef and Ansible. In this example, each instance is running a single Go binary. This server application is put in the <code>scripts/per-boot</code> folder, so that it runs on startup, and after any reboot of the AWS instance.</p>
+<pre class="packer"><code>{
+    ...
+    &quot;builders&quot;: [{
+    &quot;type&quot;: &quot;amazon-ebs&quot;,
+    &quot;access_key&quot;: &quot;{{user `aws_access_key`}}&quot;,
+    &quot;secret_key&quot;: &quot;{{user `aws_secret_key`}}&quot;,
+    &quot;region&quot;: &quot;us-west-1&quot;,
+    &quot;source_ami_filter&quot;: {
+        &quot;filters&quot;: {
+        &quot;virtualization-type&quot;: &quot;hvm&quot;,
+        &quot;name&quot;: &quot;amzn2-ami-hvm-2.0.*-x86_64-gp2&quot;,
+        &quot;root-device-type&quot;: &quot;ebs&quot;
+        },
+        &quot;owners&quot;: [&quot;137112412989&quot;],
+        &quot;most_recent&quot;: true
+    },
+    &quot;instance_type&quot;: &quot;t2.micro&quot;,
+    &quot;ssh_username&quot;: &quot;ec2-user&quot;,
+    &quot;ami_name&quot;: &quot;ami-addr {{timestamp}}&quot;
+    }],
+      &quot;provisioners&quot;: [
+    {
+      &quot;type&quot;: &quot;file&quot;,
+      &quot;source&quot;: &quot;../ReqAddr&quot;,
+      &quot;destination&quot;: &quot;/tmp/ReqAddr&quot;
+    },
+    {     
+      &quot;type&quot;: &quot;shell&quot;,
+      &quot;inline&quot;: [
+        &quot;sudo chmod 700 /tmp/ReqAddr&quot;,
+        &quot;sudo mv /tmp/ReqAddr /var/lib/cloud/scripts/per-boot/&quot;,
+        &quot;sleep 30&quot;,
+        &quot;sudo yum -y update&quot;
+      ]
+    }]
+}</code></pre>
+<p>T2.micro instances are used for development, as they are covered by the <a href="https://aws.amazon.com/free/?all-free-tier.sort-by=item.additionalFields.SortRank&amp;all-free-tier.sort-order=asc">AWS free tier</a>, which provides 750 hours of small instance use per month for a year.</p>
+<h3 id="terraform">Terraform</h3>
+<p>Terraform is open-source cloud resource infrastructure deployment software. It was chosen for this project based on its popularity, and its support of major cloud platforms.</p>
+<p>Terraform uses a declarative method for specifying deployments, which documents existing state of deployed infrastructure, providing the advantages of infrastructure as code discussed earlier. Declarative provisioning used by Terraform is easier to operate correctly and reliably than by using a procedural programming approach, for example as provided by Chef and Ansible.</p>
+<p>Terraform is programmed using functions directly mapped from the particular cloud vendor modules, and as a result its provisioning code is not portable across cloud hardware vendors. <a href="https://aws.amazon.com/cloudformation/">Amazon CloudFormation</a> would also have been a reasonable choice for configuring AWS-specific solution infrastruture, but Terraform does have a lot of features that are portable across vendor platforms.</p>
+<p>The open source Terraform version stores infrastructure configuration in a file on the user's computer, which is unsuitable for team use as more than one team member might be making configuration changes at the same time. In addition, the Terraform state file can contain sensitive encryption key information, and so should not be put into a version control system. With small teams, Terraform can be used by putting the infrastructure state file in shared, encrypted storage, and adding file locking to avoid simultaneous changes.</p>
+<p><a href="https://www.hashicorp.com/products/terraform/offerings">Terraform Cloud</a> provides additional team functions for free, including allowing remote infrastructure state access and locking during Terraform operations. In addition, Terraform Cloud provides a user interface with history of changes to state, as well as information about who made infrastructure state changes.</p>
+<p><a href="https://www.hashicorp.com/products/terraform/offerings">Terraform Enterprise</a> is a paid product providing additional features, including operations features such as team management and a configuration designer tool, and governance features such as audit logging. Terraform Enterprise is strongly recommended for large teams managing infrastructure with Terraform.</p>
+<h3 id="aws-infrastructure">AWS Infrastructure</h3>
+<p>Terraform uses a 'provider' to specify where/how to deploy the specified resources. Here the region is specified in a variable 'aws_region'. Values for all of the variables can be specified in a *.tfvars file, which allows easy support of multiple regions from the same</p>
+<pre class="terraform"><code>// terraform/aws_provider.tf
+provider &quot;aws&quot; {
+  profile = &quot;default&quot;
+  region = &quot;${var.aws_region}&quot;
+  version = &quot;~&gt; 2.20&quot;
+}
+
+resource &quot;aws_key_pair&quot; &quot;auth&quot; {
+  key_name   = &quot;${var.key_name}&quot;
+  public_key = &quot;${file(var.public_key_path)}&quot;
+}
+
+resource &quot;aws_security_group&quot; &quot;instance&quot; {
+  name = &quot;terraform-example-instance&quot;
+
+  // SSH access from anywhere
+  ingress {
+    from_port   = 22
+    to_port     = 22
+    protocol    = &quot;tcp&quot;
+    cidr_blocks = [&quot;0.0.0.0/0&quot;]
+  }
+  // other ports
+  ...</code></pre>
+<h3 id="address-and-url-servers">Address and URL Servers</h3>
+<p>Aws_instances are defined for each of the address, shortening, and expanding servicer instance. As mentioned, small <code>t2.micro</code> AWS instances are used to minimize cost during development.</p>
+<pre class="terraform"><code>resource &quot;aws_instance&quot; &quot;addr_server&quot; {
+  ami = &quot;${lookup(var.amis_addr, var.aws_region)}&quot;
+  instance_type = &quot;t2.micro&quot;
+  key_name = &quot;${var.key_name}&quot;
+  vpc_security_group_ids = [aws_security_group.instance.id]</code></pre>
+<h3 id="address-and-url-databases">Address and URL Databases</h3>
+<p>For convenience, so far project uses databases implemented using AWS RDS PostgreSql, which is supported by Terraform.</p>
+<pre class="terraform"><code>resource &quot;aws_db_instance&quot; &quot;db_shard0&quot; {
+  name                    = &quot;db_shard0&quot;
+  allocated_storage       = 20 # GB
+  engine                  = &quot;postgres&quot;
+  instance_class          = &quot;db.t2.micro&quot;
+  password = &quot;${var.db_password}&quot;
+  port                    = 5433
+  publicly_accessible     = true
+  skip_final_snapshot     = true
+  storage_type            = &quot;gp2&quot;
+  username = &quot;postgres&quot;
+  vpc_security_group_ids   = [&quot;${aws_security_group.db.id}&quot;]</code></pre>
+<h2 id="next-generation-architecture">Next Generation Architecture</h2>
+<p>The next steps for this project are to move the databases from a public to a private subnet, set up a network address translation server to allow internet access from the private subnet, implement load balancers with multiple URL shorten and expand servers, configure autoscaling for these servers to allow for variable traffic load, and to set up continuous integration (CI) for development.</p>
+<p>Further scaling work could include implementing a caching interface, setting up server groups in multiple geographic zones, utilizing lower cost AWS spot instance, and investigating less expensive database storage options.</p>
+<div class="figure">
+<embed src="figs/Shortener_Cloudcraft.pdf" title="Next generation architectures." />
+
+</div>
+<h3 id="private-subnet">Private Subnet</h3>
+<p>A private subnet is used to isolate functions that do not need public access, in this case the address and URL databases, and potentially to isolate the address server as well.</p>
+<p>Amazon AWS provides an example of using AWS modules to implement a <a href="https://docs.aws.amazon.com/vpc/latest/userguide/VPC_Scenario2.html">network with public and private subnets</a>.</p>
+<div style="margin-left: 150px">
+<img src="figs/nat-gateway-diagram.png" alt="Amazon AWS private VPC example." style="width:600px;"/>
+</div>
+<p>The private network Terraform configuration includes defining the AWS subnet, route table, routing table association, and one or more private network security groups.</p>
+<p>Classless inter-domain routing (CIDR) blocks are used to define <a href="https://docs.aws.amazon.com/vpc/latest/userguide/VPC_Subnets.html">IP address ranges</a> allowed for internal connections.</p>
+<pre class="terraform"><code>resource &quot;aws_subnet&quot; &quot;private&quot; {
+  vpc_id = &quot;${aws_vpc.default.id}&quot;
+  cidr_block = &quot;${var.private_cidr}&quot;
+  availability_zone = &quot;us-west-1&quot;
+}
+
+resource &quot;aws_route_table&quot; &quot;private&quot; {
+  vpc_id = &quot;${aws_vpc.default.id}&quot;
+  route {
+    cidr_block = &quot;0.0.0.0/0&quot;
+    instance_id = &quot;${aws_instance.nat.id}&quot;
+  }
+}
+
+resource &quot;aws_route_table_association&quot; &quot;private&quot; {
+  subnet_id = &quot;${aws_subnet.private.id}&quot;
+  route_table_id = &quot;${aws_route_table.private.id}&quot;
+}
+
+resource &quot;aws_security_group&quot; &quot;db&quot; {
+  vpc_id = &quot;${aws_vpc.default.id}&quot;
+  ingress {
+    from_port = 22
+    to_port = 22
+    protocol = &quot;tcp&quot;
+    cidr_blocks = [&quot;${var.private_cidr}&quot;]
+  }
+  ...</code></pre>
+<h3 id="nat-server">NAT server</h3>
+<p>A network address translation (NAT) function is needed to provide access to the internet from modules on the private subnet.</p>
+<p>Amazon provides pre-built AMIs for implementing a cloud instance configured as a NAT server.</p>
+<pre class="terraform"><code>resource &quot;aws_security_group&quot; &quot;nat&quot; {
+  name = &quot;vpc_nat&quot;
+  description = &quot;Allow traffic to pass from the private subnet to the internet&quot;
+  ingress {
+    from_port = 22
+    to_port = 22
+    protocol = &quot;tcp&quot;
+    cidr_blocks = [&quot;0.0.0.0/0&quot;]
+  }
+  ...
+  </code></pre>
+<h3 id="load-balancer">Load Balancer</h3>
+<p>Two load balancer is needed to share traffic load to the short serves and expand servers. AWS <a href="https://aws.amazon.com/elasticloadbalancing/">elastic load balancing</a> (ELB) modules will be used here for load balancing. There are a variety of other load balancing solutions that cold be using, including setting up an Nginx server at the front-end.</p>
+<pre class="terraform"><code>resource &quot;aws_elb&quot; &quot;url&quot; {
+  name               = &quot;foobar-terraform-elb&quot;
+  availability_zones =[&quot;${var.aws_region}&quot;]
+
+  access_logs {
+    // bucket        = &quot;foo&quot;
+    bucket_prefix = &quot;url&quot;
+    interval      = 60
+  }
+
+  listener {
+    instance_port     = &quot;${var.port_internal}&quot;
+    instance_protocol = &quot;http&quot;
+    lb_port           = 80
+    lb_protocol       = &quot;http&quot;
+  }
+
+  listener {
+    instance_port      = &quot;${var.port_internal}&quot;
+    instance_protocol  = &quot;http&quot;
+    lb_port            = 443
+    lb_protocol        = &quot;https&quot;
+    ssl_certificate_id = &quot;arn:aws:iam::**TBD**:server-certificate/certName&quot;
+  }
+
+  health_check {
+    healthy_threshold   = 2
+    unhealthy_threshold = 2
+    timeout             = 4
+    target              = &quot;HTTP:&quot; + &quot;${var.port_internal}&quot;
+    interval            = 25
+  }
+
+  instances                   = [&quot;${aws_instance.url.id}&quot;]
+  cross_zone_load_balancing   = true
+  idle_timeout                = 500
+  connection_draining         = true
+  connection_draining_timeout = 500
+
+  tags = {
+    Name = &quot;url_elb&quot;
+  }
+}
+...</code></pre>
+<h3 id="server-autoscaling">Server autoscaling</h3>
+<p>A major advantage of cloud deployments is the ability to allocate resources on demand, without paying for peak capability all of the time.</p>
+<p>Amazon offers an autoscaling <a href="https://www.terraform.io/docs/providers/aws/r/launch_configuration.html">autoscaling</a> group function which Terraform can configure.</p>
+<pre class="terraform"><code>resource &quot;aws_launch_configuration&quot; &quot;url&quot; {
+  image_id        = &quot;ami-0c55b159cbfafe1f0&quot;
+  instance_type   = &quot;t2.micro&quot;
+  security_groups = [aws_security_group.instance.id]
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+resource &quot;aws_autoscaling_group&quot; &quot;auto&quot; {
+  name                 = &quot;url_autoscaling_group&quot;
+  launch_configuration = &quot;${aws_launch_configuration.url}&quot;
+  min_size             = 1
+  max_size             = 8
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+...</code></pre>
+<h3 id="bastion-host">Bastion Host</h3>
+<p>The architecture used here has a public-facing load-balancer, which forwards traffic to compute instances for serving shortened or expanded URLs. Network security can significantly improved by providing a single network entry point, known as a bastion host, for network control and monitoring. Users can log in to the network using an SSH agent configured with agent forwarding from the client computer to avoid having to <a href="https://aws.amazon.com/blogs/security/securely-connect-to-linux-instances-running-in-a-private-amazon-vpc/">store the private key on the bastion computer</a></p>
+<p>For maximum security, the bastion host can be configured as a stand-alone server providing only network access and traffic forwarding, using a stripped-down operating system such as <a href="https://aws.amazon.com/blogs/security/how-to-use-amazon-appstream-2-0-to-reduce-your-bastion-host-attack-surface/">AWS AppStream</a>.</p>
+<h3 id="caching">Caching</h3>
+<p>Caching is another performance enhancing feature which is important feature to be implemented. A caching system (such as Redis or Memcache) will save responses to recent queries. When requesting a shortened URL, caching will intercept frequent requests to provide shortened URLs for the same long URL, which in turn minimizes wasted data storage due to multiple shortened versions of the same URL that would otherwise occur. Caching also reduces load on the URL database when many users are requesting access to the same shortened URL, by storing common resent requests in cache.</p>
+<h3 id="aws-spot-instances">AWS Spot Instances</h3>
+<p>Cloud vendors such as AWS have reserved instances which can be held and operated indefinitely. Vendors also offer much less expensive spot instances, which are priced on an instantaneous 'spot price' model, and can preempted whenever someone bids a higher price for them.</p>
+<p>When using spot instances to handle traffic overflow, enough reserved instances should still be maintained at a baseline level to ensure meeting service level availability objectives. It addition, account limits on the maximum number of spot instances should be checked to verify maximum capacity under heavy traffic.</p>
+<p>Spot instances will be preempted frequently, so they need to handle a termination command (<code>shutdown -h</code>) promptly and reliably. Switching from reserved instances to spot instances needs to be <a href="https://www.honeycomb.io/blog/treading-in-haunted-graveyards/">performed carefully</a> to avoid introducing instance allocation issues.</p>
+<h3 id="continuous-integration">Continuous Integration</h3>
+<p>Continuous integration (CI) and continuous deliver (CD) are important for teams delivering high quality software. AWS <a href="https://aws.amazon.com/codebuild/">CodeBuild</a> and CodeDeploy provides CI/CD from GitHub code to AWS EC2 server instances. <a href="https://circleci.com/">CircleCI</a> is a very popular open-source CI/CD solution. (see Concourse CI)</p>
+<h3 id="database-alternatives">Database alternatives</h3>
+<p>A commercially successful URL shortener service has existing competition offering free URL shortening, which puts some limit on value can be extracted from the customer base.</p>
+<p>A free URL shortening service is probably necessary, as it acts as advertising for enterprise customers, and most users will become familiar with the service when copy/pasting in shortened links provided by others. A URL shortener without a free tier probably could not compete successfully with successful services, which to provide free use to most customer.</p>
+<p>The data storage requirements are large even for a moderately successful player in this space. For the modest example goal of 200 URL shortening request/sec would result over a 5-year period in</p>
+<pre><code>200 * 60sec * 60min * 24hr * 365day * 5year ~ 32 billion shortening requests</code></pre>
+<p>The URL database needs to be reliable, but cost is a dominant issue. The volume of database writes and reads is high, so operational costs are high.</p>
+<p>Most SaaS applications have very good gross margins, and the cost of using a managed database is a good tradeoff. However, a managed database like AWS RDS might not be commercially feasible for this application, in which it should be difficult to maintain high gross margin.</p>
+<p>The required URL mapping could be implemented in a distributed key-value database managed by internal staff. Popular <a href="https://www.g2.com/categories/key-value-stores">distributed database</a> candidates include Aerospike, ArandoDB, BoltDB, CouchDB, Google Cloud Datastore, Hbase, and Redis. A promising distributed database written in Go is the open source <em>etcd</em> database, which uses the Raft consensus algorithm.</p>
+<h2 id="infrastructure-orchestration">Infrastructure Orchestration</h2>
+<p>Terraform was used here for provisioning cloud resources due to its simplicity and ease of use. Schedulers popular for large and complex systems include Fleet, Kubernetes, Marathon, and <a href="http://mesos.apache.org/">Mesos</a>.</p>
+<h3 id="kubernetes">Kubernetes</h3>
+<p>Kubernetes provides deployment, scaling, load balancing, and monitoring. Kubernetes was developed at Google, and has become an extremely popular recently due to its power and flexibility. In 2015, container survey found just 10 percent of respondents were using any container orchestration tool. Two years, 71% of respondents were <a href="https://techcrunch.com/2017/12/18/as-kubernetes-surged-in-popularity-in-2017-it-created-a-vibrant-ecosystem/">using Kubernetes to manage their containers</a>.</p>
+<p>Kubernetes is particularly well suited for a hybrid server use case, for example the case where some of the resources are in an on-prem data center, and other resources are in the cloud.</p>
+</body>
+</html>

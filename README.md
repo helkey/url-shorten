@@ -35,7 +35,7 @@ to expand previously shortened URLs and provide clear warnings about risks of us
 The other major URL shortening services which continue to operate do not provide warnings about security issues
 in using URL shorteners.
 
-![](figs/GoogleShortenerHighlighted.png "Google Security Warning")
+<div style="margin-left: 150px"><img src="figs/GoogleShortenerHighlighted.png" alt="Google Security Warning" style="width:600px;"/></div>
 
 As a result of reduced URL shortened address space, possible URL shortened addresses can be scanned to find web sites containing:
 
@@ -136,8 +136,7 @@ which allowed easy external access to all of the deployed instances for testing.
 Go channels are used as buffers from the address server to the shortener servers,
 in order account for data transmission errors which are more likely to occur in network applications.
 
-
-
+![](figs/Shortener_V1.pdf "Initial configuration.")
 
 
 ### AWS Cloud Platform
@@ -152,12 +151,12 @@ The Amazon drawing below shows the lifecycle of an AWS AMI.
 AMIs can be created and stored, then registered when ready for instantiation.
 Multiple identical cloud instances can be generated from an AMI.
 AMIs can be deregistered when no longer needed to free up storage.
-
-![](figs/ami_lifecycle.png "AMI life cycle")
-[AMI lifecycle](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/AMIs.html]
-
 AWS provides generic AMIs as a starting point for customization, such as the
   [Linux 2 AMI](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/finding-an-ami.html).
+
+The [AMI lifecycle](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/AMIs.html] is:
+
+![](figs/ami_lifecycle.png "AMI life cycle")
 
 AMIs can be tagged for identification, such as 'owner', 'development/production', or 'release number'.
 Tags can help organize your AWS bill, for example for budgeting and accounting purposes.
@@ -344,17 +343,24 @@ and to set up continuous integration (CI) for development.
 Further scaling work could include implementing a caching interface, setting up server groups in multiple geographic zones,
 utilizing lower cost AWS spot instance, and investigating less expensive database storage options.
 
+![](figs/Shortener_Cloudcraft.pdf "Next generation architectures.")
 
 ### Private Subnet
 A private subnet is used to isolate functions that do not need public access,
 in this case the address and URL databases, and potentially to isolate the address server as well.
 
-The private network configuration includes defining the AWS subnet, route table, routing table association,
-and one or more private network security groups.
+Amazon AWS provides an example of using AWS modules to implement a
+  [network with public and private subnets](https://docs.aws.amazon.com/vpc/latest/userguide/VPC_Scenario2.html).
+
+<div style="margin-left: 150px"><img src="figs/nat-gateway-diagram.png" alt="Amazon AWS private VPC example." style="width:600px;"/></div>
+
+The private network Terraform configuration includes defining the AWS subnet, route table, 
+routing table association, and one or more private network security groups.
 
 Classless inter-domain routing (CIDR) blocks are used to define
   [IP address ranges](https://docs.aws.amazon.com/vpc/latest/userguide/VPC_Subnets.html)
 allowed for internal connections.
+
 
 ```terraform
 resource "aws_subnet" "private" {
@@ -529,6 +535,7 @@ introducing instance allocation issues.
 Continuous integration (CI) and continuous deliver (CD) are important for teams delivering high quality software.
 AWS [CodeBuild](https://aws.amazon.com/codebuild/) and CodeDeploy provides CI/CD from GitHub code
 to AWS EC2 server instances. [CircleCI](https://circleci.com/) is a very popular open-source CI/CD solution.
+(see Concourse CI)
 
 ### Database alternatives
 A commercially successful URL shortener service has existing competition offering free URL shortening,
@@ -560,13 +567,13 @@ which uses the Raft consensus algorithm.
 
 ## Infrastructure Orchestration
 Terraform was used here for provisioning cloud resources due to its simplicity and ease of use.
-Schedulers popular for large and complex systems include Fleet, Kubernetes, Marathon, and Mesos.
+Schedulers popular for large and complex systems include Fleet, Kubernetes, Marathon, and [Mesos](http://mesos.apache.org/).
 
 ### Kubernetes
 Kubernetes provides deployment, scaling, load balancing, and monitoring.
 Kubernetes was developed at Google, and has become an extremely popular recently due to its power and flexibility.
 In 2015, container survey found just 10 percent of respondents were using any container orchestration tool.
-Two years, 71% of respondents were
+Two years later, 71% of respondents were
   [using Kubernetes to manage their containers](https://techcrunch.com/2017/12/18/as-kubernetes-surged-in-popularity-in-2017-it-created-a-vibrant-ecosystem/).
 
 Kubernetes is particularly well suited for a hybrid server use case, for example the case
