@@ -6,7 +6,6 @@ variable "private_cidr" {
 
 resource "aws_subnet" "private" {
   vpc_id = "${aws_vpc.default.id}"
-
   cidr_block = "${var.private_cidr}"
   availability_zone = ""
 
@@ -17,7 +16,6 @@ resource "aws_subnet" "private" {
 
 resource "aws_route_table" "private" {
   vpc_id = "${aws_vpc.default.id}"
-
   route {
     cidr_block = "0.0.0.0/0"
     instance_id = "${aws_instance.nat.id}"
@@ -29,24 +27,20 @@ resource "aws_route_table_association" "private" {
   route_table_id = "${aws_route_table.private.id}"
 }
 
-
 resource "aws_security_group" "db" {
   vpc_id = "${aws_vpc.default.id}"
-
   ingress {
     from_port = 22
     to_port = 22
     protocol = "tcp"
     cidr_blocks = ["${var.private_cidr}"]
   }
-
   ingress { # DB
     from_port = 5433
     to_port = 5433
     protocol = "tcp"
     security_groups = ["${aws_security_group.public.id}"]
   }
-
   ingress { # DB error messages
     from_port = -1
     to_port = -1
@@ -60,7 +54,6 @@ resource "aws_security_group" "db" {
     protocol = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
-  
   egress { # HTTPS to internet
     from_port = 443
     to_port = 443
