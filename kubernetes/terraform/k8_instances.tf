@@ -1,6 +1,7 @@
-// 
+// k8_instances
 
-# IF you create the role in Terraform
+// medium.com/@devopslearning/aws-iam-ec2-instance-role-using-terraform-fa2b21488536
+# Create IAM role in Terraform?
 resource "aws_iam_role" "k8" {
   name = "k8_role"
   assume_role_policy = <<EOF
@@ -23,6 +24,13 @@ EOF
   }
 }
 
+// Provide an IAM instance profile: https://www.terraform.io/docs/providers/aws/r/iam_instance_profile.html
+resource "aws_iam_instance_profile" "k8" {
+  name = "k8_profile"
+  role = "${aws_iam_role.k8.name}"
+}
+
+// Policy gives EC2 instance full access to S3 bucket
 resource "aws_iam_role_policy" "k8" {
   name = "k8_policy"
   role = "${aws_iam_role.k8.id}"
@@ -42,12 +50,8 @@ resource "aws_iam_role_policy" "k8" {
 }
 EOF
 }
-
-
-// Provide an IAM instance profile: https://www.terraform.io/docs/providers/aws/r/iam_instance_profile.html
-data "aws_iam_instance_profile" "k8" {
-  name = "name_of_instance_profile" 
-}
+// data "aws_iam_instance_profile" "k8" {
+//  name = "name_of_instance_profile" }
 
 
 //-- KUBERNETES CONTROLLER  --
@@ -55,7 +59,7 @@ resource "aws_instance" "controller_0" {
   ami = "${lookup(var.amis_k8, var.aws_region)}"
   instance_type = "t2.micro"
   associate_public_ip_address = true
-  iam_instance_profile = "kubernetes"
+  iam_instance_profile = "k8_profile"
   key_name = "${var.key_name}"
   private_ip = "10.240.0.10"
   subnet_id   = "${aws_subnet.k8.id}"
@@ -70,7 +74,7 @@ resource "aws_instance" "worker_0" {
   ami = "${lookup(var.amis_k8, var.aws_region)}"
   instance_type = "t2.micro"
   associate_public_ip_address = true
-  iam_instance_profile = "kubernetes"
+  iam_instance_profile = "k8_profile"
   key_name = "${var.key_name}"
   private_ip = "10.240.0.20"
   subnet_id   = "${aws_subnet.k8.id}"

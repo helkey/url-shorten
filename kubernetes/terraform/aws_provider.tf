@@ -15,7 +15,7 @@ resource "aws_vpc" "main" {
 }
 
 resource "aws_vpc_dhcp_options" "dns_resolver" {
-  domain_name          = "${(var.aws_region).compute.internal}"
+  domain_name          = "k8.internal"
   domain_name_servers  = ["AmazonProvidedDNS"]
   tags = {
     Name = "kubenetes"
