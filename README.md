@@ -535,7 +535,10 @@ introducing instance allocation issues.
 Continuous integration (CI) and continuous deliver (CD) are important for teams delivering high quality software.
 AWS [CodeBuild](https://aws.amazon.com/codebuild/) and CodeDeploy provides CI/CD from GitHub code
 to AWS EC2 server instances. [CircleCI](https://circleci.com/) is a very popular open-source CI/CD solution.
-(see Concourse CI)
+
+[Github Matrix](https://github.com/features/actions?utm_campaign=1565284208) lets you test on Linux, MacOS, Windows, containers, as well as multiple runtime versions,(see Concourse CI). simultaneously.
+
+<div style="margin-left: 150px"><img src="figs/github_matrix_CI.png" alt="Github matrix continuous integration" style="width:600px;"/></div>
 
 ### Database alternatives
 A commercially successful URL shortener service has existing competition offering free URL shortening,
@@ -565,11 +568,10 @@ A promising distributed database written in Go is the open source *etcd* databas
 which uses the Raft consensus algorithm.
 
 
-## Infrastructure Orchestration
+## Kubernetes Infrastructure Orchestration
 Terraform was used here for provisioning cloud resources due to its simplicity and ease of use.
 Schedulers popular for large and complex systems include Fleet, Kubernetes, Marathon, and [Mesos](http://mesos.apache.org/).
 
-### Kubernetes
 Kubernetes provides deployment, scaling, load balancing, and monitoring.
 Kubernetes was developed at Google, and has become an extremely popular recently due to its power and flexibility.
 In 2015, container survey found just 10 percent of respondents were using any container orchestration tool.
@@ -579,9 +581,28 @@ Two years later, 71% of respondents were
 Kubernetes is particularly well suited for a hybrid server use case, for example the case
 where some of the resources are in an on-prem data center, and other resources are in the cloud.
 
+### Managed Kubernetes
+[managed Kubernete services](https://blog.codeship.com/a-roundup-of-managed-kubernetes-platforms/) include Google, Azure, Amazon 
+
+### Google
+The best managed Kubernetes service (no surprise, as Kubernetes was developed at Google)
+
+### Azure
+
+### Amazon EKS
+Despite being the leading cloud provider, Amazon has been slower than the other leaders to deploy a managed Kubernetes servies.
+
+Amazon [Elastic Kubernetes Service](https://docs.aws.amazon.com/eks/latest/userguide/what-is-eks.html)
+<div style="margin-left: 150px"><img src="figs/what-is-eks.png" alt="Amazon EKS managed Kubernetes" style="width:600px;"/></div>
 
 
+### Stackpoint
+hosted with (AWS,...Digital Ocean)
 
+### Red Hat Open Shift
+
+### AppsCode:
+Open source tools...
 
 
 
