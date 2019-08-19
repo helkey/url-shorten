@@ -568,7 +568,8 @@ A promising distributed database written in Go is the open source *etcd* databas
 which uses the Raft consensus algorithm.
 
 
-## Kubernetes Infrastructure Orchestration
+
+# Kubernetes Infrastructure Orchestration
 Terraform was used here for provisioning cloud resources due to its simplicity and ease of use.
 Schedulers popular for large and complex systems include Fleet, Kubernetes, Marathon, and [Mesos](http://mesos.apache.org/).
 
@@ -581,7 +582,8 @@ Two years later, 71% of respondents were
 Kubernetes is particularly well suited for a hybrid server use case, for example the case
 where some of the resources are in an on-prem data center, and other resources are in the cloud.
 
-### Managed Kubernetes
+
+## Managed Kubernetes Infrastructure
 [managed Kubernete services](https://blog.codeship.com/a-roundup-of-managed-kubernetes-platforms/) include Google, Azure, Amazon 
 
 ### Google
@@ -595,14 +597,36 @@ Despite being the leading cloud provider, Amazon has been slower than the other 
 Amazon [Elastic Kubernetes Service](https://docs.aws.amazon.com/eks/latest/userguide/what-is-eks.html)
 <div style="margin-left: 150px"><img src="figs/what-is-eks.png" alt="Amazon EKS managed Kubernetes" style="width:600px;"/></div>
 
-
 ### Stackpoint
 hosted with (AWS,...Digital Ocean)
 
-### Red Hat Open Shift
+### Red Hat OpenShift
+Openshift is the
+  [Kubernetes++ I didn't know I wanted](@paul_snively/status/1081920163484782594)
 
 ### AppsCode:
 Open source tools...
 
+### k3s
+[K3s](https://k3s.io/) is an easily installed Kubernetes distribution for resource-constrained environments.
+TLS certificates are automatically generated to ensure that all communication is secure by default.
+A k3 demo](https://info.rancher.com/meetup-k3s-lightweight-kubernetes) is available.
+<!--- GKE is the only decent k8s implementation, EKS and AKS are not real contenders id=18080390 --->
 
+k3s is installed from a single binary, containing everything needed to run Kubernetes. Installing k3s:
+```sh
+curl -sfL https://get.k3s.io | sh - # wait ~30sec
+k3s kubectl get node
+```
+
+To start a single-node server, run `k3s server`, which will register local host as an agent.
+To add more nodes to the cluster, run `k3s agent --server ${URL} --token ${TOKEN}` on another host.
+
+k3s does not work on WSL, which is like a linux single user mode. k3s requires systemd or openrc as a process supervisor.
+Running k3s on Windows requres running Linux under vmware or virtualbox.
+
+
+## Deploying to Kubernetes
+Setting up Kubernetes on a managed cluster is easy (e.g. GKE), but
+  [there is nothing easy about what is required after that](https://twitter.com/kelseyhightower/status/1158367402838679552)
 
