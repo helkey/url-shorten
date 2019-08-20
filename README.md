@@ -69,7 +69,7 @@ Another security vulnerability is that URL shortening services may use sequentia
 which further reduces security by allowing recipients of a shorted URL to access compromised related URLs.
 Bitly appears to use a 6-character URL shortening space for addresses shortened at a similar time.
 If someone finds a sensitive shortened Bitly URL, they can scan all of the other URLs shortened around the same time for a
-  [few hundred dollar](https://arxiv.org/pdf/1604.02734v1.pdf).
+  [few hundred dollars](https://arxiv.org/pdf/1604.02734v1.pdf).
 
 
 ## URL Encoding
@@ -141,7 +141,7 @@ in order account for data transmission errors which are more likely to occur in 
 
 ### AWS Cloud Platform
 Amazon Web Services (AWS) was chosen for the initial implementation, as Amazon has over half the
-cloud computing provider market share, and as a result the most mature software solutions.
+cloud computing provider market share, and as a result has the most mature software solutions.
 However, there are many other cloud computing choices. Azure (Microsoft) and Google Cloud Compute
 are the next most popular cloud computing providers.
 
@@ -249,9 +249,9 @@ Declarative provisioning used by Terraform is easier to operate correctly and re
 than by using a procedural programming approach, for example as provided by Chef and Ansible.
 
 Terraform is programmed using functions directly mapped from the particular cloud vendor modules,
-and as a result its provisioning code is not portable across cloud hardware vendors.
+and as a result, its provisioning code is not portable across cloud hardware vendors.
 [Amazon CloudFormation](https://aws.amazon.com/cloudformation/) would also have been a reasonable choice
-for configuring AWS-specific solution infrastruture, but Terraform does have a lot of features that
+for configuring AWS-specific solution infrastructure, but Terraform does have a lot of features that
 are portable across vendor platforms.
 
 The open source Terraform version stores infrastructure configuration in a file on the user's computer,
@@ -341,7 +341,7 @@ configure autoscaling for these servers to allow for variable traffic load,
 and to set up continuous integration (CI) for development.
 
 Further scaling work could include implementing a caching interface, setting up server groups in multiple geographic zones,
-utilizing lower cost AWS spot instance, and investigating less expensive database storage options.
+utilizing lower cost AWS spot instances, and investigating less expensive database storage options.
 
 ![](figs/Shortener_Cloudcraft.pdf "Next generation architectures.")
 
@@ -414,9 +414,9 @@ resource "aws_security_group" "nat" {
 ```
 
 ### Load Balancer
-Two load balancer is needed to share traffic load to the short serves and expand servers.
+Two load balancers are needed to share traffic load to the short serves and expand servers.
 AWS [elastic load balancing](https://aws.amazon.com/elasticloadbalancing/) (ELB) modules will be used here
-for load balancing. There are a variety of other load balancing solutions that cold be using,
+for load balancing. There are a variety of other load balancing solutions that could be used,
 including setting up an Nginx server at the front-end.
 
 ```terraform
@@ -500,7 +500,7 @@ resource "aws_autoscaling_group" "auto" {
 
 ### Bastion Host
 The architecture used here has a public-facing load-balancer, which forwards traffic to compute instances for serving shortened or expanded URLs.
-Network security can significantly improved by providing a single network entry point, known as a bastion host, for network control and monitoring.
+Network security can be improved significantly by providing a single network entry point, known as a bastion host, for network control and monitoring.
 Users can log in to the network using an SSH agent configured with agent forwarding from the client computer to avoid having to
   [store the private key on the bastion computer](https://aws.amazon.com/blogs/security/securely-connect-to-linux-instances-running-in-a-private-amazon-vpc/)
 
@@ -519,11 +519,11 @@ by storing common resent requests in cache.
 ### AWS Spot Instances
 Cloud vendors such as AWS have reserved instances which can be held and operated indefinitely.
 Vendors also offer much less expensive spot instances, which are priced on an instantaneous
-'spot price' model, and can preempted whenever someone bids a higher price for them.
+'spot price' model, and can be preempted whenever someone bids a higher price for them.
 
 When using spot instances to handle traffic overflow, enough reserved instances should still be
 maintained at a baseline level to ensure meeting service level availability objectives.
-It addition, account limits on the maximum number of spot instances should be checked to verify
+In addition, account limits on the maximum number of spot instances should be checked to verify
 maximum capacity under heavy traffic.
 
 Spot instances will be preempted frequently, so they need to handle a termination command (`shutdown -h`)
@@ -569,22 +569,44 @@ which uses the Raft consensus algorithm.
 
 
 
-# Kubernetes Infrastructure Orchestration
-Terraform was used here for provisioning cloud resources due to its simplicity and ease of use.
-Schedulers popular for large and complex systems include Fleet, Kubernetes, Marathon, and [Mesos](http://mesos.apache.org/).
+# Infrastructure Orchestration
+Orchestration functions include
+* Load-balance groups of containers to handle high levels of traffic
+* Scheduling containers to run based on load and available resources
+* Implement access policies for applications running inside containers
 
+
+Terraform was used here for provisioning cloud resources due to its simplicity and ease of use.
+Schedulers popular for large and complex systems include Docker Swarm, Fleet, Kubernetes, Marathon, [Mesos](http://mesos.apache.org/), and [Nomad](https://www.nomadproject.io/).
+In addition, [Amazon ACS](https://aws.amazon.com/ecs/) and [Microsoft ACI](https://azure.microsoft.com/en-us/services/container-instances/)
+are vendor-specific orchestration solutions.
+
+## Kubernetes
 Kubernetes provides deployment, scaling, load balancing, and monitoring.
-Kubernetes was developed at Google, and has become an extremely popular recently due to its power and flexibility.
+Kubernetes was developed at Google and has become an extremely popular recently due to its power and flexibility.
 In 2015, container survey found just 10 percent of respondents were using any container orchestration tool.
 Two years later, 71% of respondents were
   [using Kubernetes to manage their containers](https://techcrunch.com/2017/12/18/as-kubernetes-surged-in-popularity-in-2017-it-created-a-vibrant-ecosystem/).
 
+Kubernetes provides
+*Scaling
+  Can scale containers automatically based on CPU utilization
+*Recovery
+  Kills and restarts unresponsive containers, while rerouting traffic to functioning containers.
+*Load balancing
+*Service discovery
+*Automatic rollouts
+*Secret management
+
+
 Kubernetes is particularly well suited for a hybrid server use case, for example the case
 where some of the resources are in an on-prem data center, and other resources are in the cloud.
 
+Software such as [OpenShift](), [VMWare](), [Stackpoint](),  to install Kubernetes on cloud-based services.
 
-## Managed Kubernetes Infrastructure
-[managed Kubernete services](https://blog.codeship.com/a-roundup-of-managed-kubernetes-platforms/) include Google, Azure, Amazon 
+Managed services offer ***. [Managed Kubernetes services](https://blog.codeship.com/a-roundup-of-managed-kubernetes-platforms/)
+include Google, Azure, Amazon, Digital Ocean](https://www.digitalocean.com/products/kubernetes/). Also software
+to install
 
 ### Google
 The best managed Kubernetes service (no surprise, as Kubernetes was developed at Google)
@@ -592,17 +614,23 @@ The best managed Kubernetes service (no surprise, as Kubernetes was developed at
 ### Azure
 
 ### Amazon EKS
-Despite being the leading cloud provider, Amazon has been slower than the other leaders to deploy a managed Kubernetes servies.
+Despite being the leading cloud provider, Amazon has been slower than the other leaders to deploy managed Kubernetes services.
+Amazon now has [Elastic Kubernetes Service](https://docs.aws.amazon.com/eks/latest/userguide/what-is-eks.html)
+<div style="margin-left: 150px"><img src="figs/what-is-eks.png" alt="Amazon EKS managed Kubernetes" style="width:600px;"/></div> (EKS),
+which requires more [manual configuration]() to set up than for GCP.
 
-Amazon [Elastic Kubernetes Service](https://docs.aws.amazon.com/eks/latest/userguide/what-is-eks.html)
-<div style="margin-left: 150px"><img src="figs/what-is-eks.png" alt="Amazon EKS managed Kubernetes" style="width:600px;"/></div>
+### Digital Ocean
+Digital Ocean has a pricing page that allows comparison of Amazon AWS, Google,... cloud providers, including CPUs, bandwidth,...
 
 ### Stackpoint
-hosted with (AWS,...Digital Ocean)
+Multi-cloud solution; host with (AWS,...Digital Ocean)
 
 ### Red Hat OpenShift
-Openshift is the
-  [Kubernetes++ I didn't know I wanted](@paul_snively/status/1081920163484782594)
+Red Hat Openshift has some strong references, including being the
+  [Kubernetes++ I didn't know I wanted](@paul_snively/status/1081920163484782594).
+Openshift interface is readily installed on MacOS, Red Hat Linux, and Fedora Linux.
+
+Demonstrate with Amazon AMI.
 
 ### AppsCode:
 Open source tools...
@@ -622,11 +650,11 @@ k3s kubectl get node
 To start a single-node server, run `k3s server`, which will register local host as an agent.
 To add more nodes to the cluster, run `k3s agent --server ${URL} --token ${TOKEN}` on another host.
 
-k3s does not work on WSL, which is like a linux single user mode. k3s requires systemd or openrc as a process supervisor.
-Running k3s on Windows requres running Linux under vmware or virtualbox.
-
+k3s does not work on WSL, which is like a Linux single user mode. k3s requires systemd or openrc as a process supervisor.
+Running k3s on Windows requres running Linux under Vmware or Virtualbox.
 
 ## Deploying to Kubernetes
 Setting up Kubernetes on a managed cluster is easy (e.g. GKE), but
   [there is nothing easy about what is required after that](https://twitter.com/kelseyhightower/status/1158367402838679552)
+
 
