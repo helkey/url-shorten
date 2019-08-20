@@ -136,7 +136,7 @@ which allowed easy external access to all of the deployed instances for testing.
 Go channels are used as buffers from the address server to the shortener servers,
 in order account for data transmission errors which are more likely to occur in network applications.
 
-![](figs/Shortener_V1.pdf "Initial configuration.")
+![](figs/Shortener_V1.png "Initial configuration.")
 
 
 ### AWS Cloud Platform
@@ -343,7 +343,7 @@ and to set up continuous integration (CI) for development.
 Further scaling work could include implementing a caching interface, setting up server groups in multiple geographic zones,
 utilizing lower cost AWS spot instances, and investigating less expensive database storage options.
 
-![](figs/Shortener_Cloudcraft.pdf "Next generation architectures.")
+![](figs/ShortenerCloudcraft.png "Next generation architectures.")
 
 ### Private Subnet
 A private subnet is used to isolate functions that do not need public access,
@@ -538,7 +538,7 @@ to AWS EC2 server instances. [CircleCI](https://circleci.com/) is a very popular
 
 [Github Matrix](https://github.com/features/actions?utm_campaign=1565284208) lets you test on Linux, MacOS, Windows, containers, as well as multiple runtime versions,(see Concourse CI). simultaneously.
 
-<div style="margin-left: 150px"><img src="figs/github_matrix_CI.png" alt="Github matrix continuous integration" style="width:600px;"/></div>
+<div style="margin-left: 150px"><img src="figs/github_matrix.png" alt="Github matrix continuous integration" style="width:600px;"/></div>
 
 ### Database alternatives
 A commercially successful URL shortener service has existing competition offering free URL shortening,
@@ -598,29 +598,100 @@ Kubernetes provides
 *Automatic rollouts
 *Secret management
 
+Kubernetes is particularly well suited for a hybrid server use case, for example where some of the resources
+  are in an on-prem data center, and other resources are in the cloud.
 
-Kubernetes is particularly well suited for a hybrid server use case, for example the case
-where some of the resources are in an on-prem data center, and other resources are in the cloud.
+### Etcd
+Etcd is a distributed key-value store used for the most critical data in a distributed system (https://etcd.io).
+[A Closer Look at Etcd: The Brain of a Kubernetes Cluster](https://medium.com/better-programming/a-closer-look-at-etcd-the-brain-of-a-kubernetes-cluster-788c8ea759a5)
+!fig: etcd on the Kubernetes master nodes (Kubernetes documentation)
+!fig: etcd deployed to an external cluster (Kubernetes documentation)
 
-Software such as [OpenShift](), [VMWare](), [Stackpoint](),  to install Kubernetes on cloud-based services.
+### Pod Creation
+The Heptio Kubernetes article "[Jazz Improv over Orchestration](https://blog.heptio.com/core-kubernetes-jazz-improv-over-orchestration-a7903ea92ca)" 
+  shows a sequence diagram illustrating an API for scheduling a pod.
+<div style="margin-left: 150px"><img src="figs/pod_deployment_diagram_Heptio.png" alt="[Typical workflow for scheduling a pod](https://blog.heptio.com/core-kubernetes-jazz-improv-over-orchestration-a7903ea92ca)" style="width:600px;"/></div>
+
+### Manual Kubernetes Deployment
+One way to understand some of the internals of the Kubernetes infrastructure is to type all of the commands manually,
+which Kelsey Hightower has set up as [the Hard Way](https://github.com/kelseyhightower/kubernetes-the-hard-way/blob/master/docs/02-client-tools.md).
+As a demonstration, I ported some of the commands to [Terraform and Packer](https://github.com/helkey/kubernetes-terraform-way)
+using slawekzachcial's [AWS fork](https://github.com/slawekzachcial/kubernetes-the-hard-way-aws), as Kelsey dropped AWS support in his project.
+
+## Kubernetes Management
+Software such as [OpenShift](), [VMWare](), [Stackpoint](), to install Kubernetes on cloud-based services.
 
 Managed services offer ***. [Managed Kubernetes services](https://blog.codeship.com/a-roundup-of-managed-kubernetes-platforms/)
 include Google, Azure, Amazon, Digital Ocean](https://www.digitalocean.com/products/kubernetes/). Also software
 to install
 
 ### Google
-The best managed Kubernetes service (no surprise, as Kubernetes was developed at Google)
+Google has the most polished managed Kubernetes service (which comes as no surprise, as Kubernetes was developed at Google).
+
+Tools like Hashicorp Packer somewhat reduce the effort of supporting multiple cloud vendors by providing common tooling across platforms.
+Here Packer will be used to build [Google Compute Engine images] for deploying to Kubernetes on GKE. Packer can also be integrated
+into a continuous integration work flow, for instance using [Jenkins](https://cloud.google.com/solutions/automated-build-images-with-jenkins-kubernetes)
+
+The first step is to set up a [Google services account file](https://www.packer.io/docs/builders/googlecompute.html).
+This services account file is not required if running the Packer builder from a properly-configured GCE instance.
+Here is an example of building the URL shortener address server using a Packer file.
+
+Find a suitable image (yum installer: Red Hat & CentOS Linux)
+
+http://blog.shippable.com/build-a-gcp-vm-image-using-packer
+```Packer
+{
+    "variables": {
+	"db_password": "{{env `TF_VAR_db_password`}}"
+    },
+    "builders": [{
+      "type": "googlecompute",
+      "account_file": "account.json",
+      "project_id": "my project",
+      "source_image": "debian-7-wheezy-v20150127",
+      "ssh_username": "root",
+      "zone": "us-west1-a"
+    }],
+      "provisioners": [
+    {
+      "type": "file",
+      "source": "../ReqAddr",
+      "destination": "/tmp/ReqAddr"
+    },
+    {	  
+      "type": "shell",
+      "inline": [
+        "sudo chmod 700 /tmp/ReqAddr",
+        "sudo mv /tmp/ReqAddr /var/lib/cloud/scripts/per-boot/",
+        "sleep 30",
+        "sudo yum -y update"
+      ]
+    }]
+}
+```
+
+https://cloud.google.com/sdk/install
+Create a GCP project, enable billing, install the [GCP SDK](https://cloud.google.com/sdk/docs/downloads-apt-get)
 
 ### Azure
+Kubernetes on Azure can be deployed [from a command line interface](https://dev.to/azure/kubernetes-from-the-beginning-part-i-4ifd).
+Start by setting up an Azure [account](https://azure.microsoft.com/en-us/free/) and get a $200 credit during the first 12 months of use.
 
 ### Amazon EKS
-Despite being the leading cloud provider, Amazon has been slower than the other leaders to deploy managed Kubernetes services.
+Amazon was an early leader in cluster management with their proprietary Amazon EC2 Container Service (ECS).
+The rapid rise of Kubernetes as an open source solution has left Amazon somewhat behind in deploying managed Kubernetes services.
+
 Amazon now has [Elastic Kubernetes Service](https://docs.aws.amazon.com/eks/latest/userguide/what-is-eks.html)
-<div style="margin-left: 150px"><img src="figs/what-is-eks.png" alt="Amazon EKS managed Kubernetes" style="width:600px;"/></div> (EKS),
-which requires more [manual configuration]() to set up than for GCP.
+which requires more [manual configuration]() to set up than for GCP.<div style="margin-left: 150px"><img src="figs/what-is-eks.png" alt="Amazon EKS managed Kubernetes" style="width:600px;"/></div> (EKS),
+
+The [steps to create an EKS cluster](https://medium.com/@Instaclustr/anomalia-machina-7-kubernetes-cluster-creation-and-application-deployment-e10f19132809).
 
 ### Digital Ocean
-Digital Ocean has a pricing page that allows comparison of Amazon AWS, Google,... cloud providers, including CPUs, bandwidth,...
+Digital Ocean has a managed Kubernetes service.
+
+Digital Ocean also has a pricing page that allows comparison of Amazon AWS, Google,... cloud providers, including CPUs, bandwidth,...
+compare cloud host solutions, where the lowest price depends significantly on whether
+
 
 ### Stackpoint
 Multi-cloud solution; host with (AWS,...Digital Ocean)
@@ -630,7 +701,7 @@ Red Hat Openshift has some strong references, including being the
   [Kubernetes++ I didn't know I wanted](@paul_snively/status/1081920163484782594).
 Openshift interface is readily installed on MacOS, Red Hat Linux, and Fedora Linux.
 
-Demonstrate with Amazon AMI.
+<!--- Demonstrate with Amazon AMI.  --->
 
 ### AppsCode:
 Open source tools...
@@ -651,10 +722,19 @@ To start a single-node server, run `k3s server`, which will register local host 
 To add more nodes to the cluster, run `k3s agent --server ${URL} --token ${TOKEN}` on another host.
 
 k3s does not work on WSL, which is like a Linux single user mode. k3s requires systemd or openrc as a process supervisor.
-Running k3s on Windows requres running Linux under Vmware or Virtualbox.
+Running k3s on Windows requires running Linux under Vmware or Virtualbox.
 
 ## Deploying to Kubernetes
 Setting up Kubernetes on a managed cluster is easy (e.g. GKE), but
   [there is nothing easy about what is required after that](https://twitter.com/kelseyhightower/status/1158367402838679552)
+
+## Monitoring Kubernetes
+Kubernetes offers a powerful orchestration capability, but lacks many features needed to run cloud deployments in production.
+Many competing software services have been quickly built up to provide these features, leading to a fragmented
+ecosystem.
+
+There are many monitoring solutions to help managed Kubernetes deployments, including [https://github.com/kube-prometheus](https://github.com/coreos/kube-prometheus)
+which uses Prometheus to monitor Kubernetes and Kubernetes applications, and Heptio [Sonobuoy](https://github.com/heptio/sonobuoy).
+
 
 
