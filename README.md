@@ -343,7 +343,7 @@ and to set up continuous integration (CI) for development.
 Further scaling work could include implementing a caching interface, setting up server groups in multiple geographic zones,
 utilizing lower cost AWS spot instances, and investigating less expensive database storage options.
 
-![](figs/ShortenerCloudcraft.png "Next generation architectures.")
+![](figs/Shortener_Cloudcraft.png "Next generation architectures.")
 
 ### Private Subnet
 A private subnet is used to isolate functions that do not need public access,
@@ -608,7 +608,7 @@ Etcd is a distributed key-value store used for the most critical data in a distr
 !fig: etcd deployed to an external cluster (Kubernetes documentation)
 
 ### Pod Creation
-The Heptio Kubernetes article "[Jazz Improv over Orchestration](https://blog.heptio.com/core-kubernetes-jazz-improv-over-orchestration-a7903ea92ca)" 
+The nice Heptio Kubernetes article "[Jazz Improv over Orchestration](https://blog.heptio.com/core-kubernetes-jazz-improv-over-orchestration-a7903ea92ca)" 
   shows a sequence diagram illustrating an API for scheduling a pod.
 <div style="margin-left: 150px"><img src="figs/pod_deployment_diagram_Heptio.png" alt="[Typical workflow for scheduling a pod](https://blog.heptio.com/core-kubernetes-jazz-improv-over-orchestration-a7903ea92ca)" style="width:600px;"/></div>
 
@@ -616,7 +616,7 @@ The Heptio Kubernetes article "[Jazz Improv over Orchestration](https://blog.hep
 One way to understand some of the internals of the Kubernetes infrastructure is to type all of the commands manually,
 which Kelsey Hightower has set up as [the Hard Way](https://github.com/kelseyhightower/kubernetes-the-hard-way/blob/master/docs/02-client-tools.md).
 As a demonstration, I ported some of the commands to [Terraform and Packer](https://github.com/helkey/kubernetes-terraform-way)
-using slawekzachcial's [AWS fork](https://github.com/slawekzachcial/kubernetes-the-hard-way-aws), as Kelsey dropped AWS support in his project.
+using slawekzachcial's [AWS fork](https://github.com/slawekzachcial/kubernetes-the-hard-way-aws) as Kelsey dropped AWS support in his project.
 
 ## Kubernetes Management
 Software such as [OpenShift](), [VMWare](), [Stackpoint](), to install Kubernetes on cloud-based services.
@@ -684,7 +684,8 @@ The rapid rise of Kubernetes as an open source solution has left Amazon somewhat
 Amazon now has [Elastic Kubernetes Service](https://docs.aws.amazon.com/eks/latest/userguide/what-is-eks.html)
 which requires more [manual configuration]() to set up than for GCP.<div style="margin-left: 150px"><img src="figs/what-is-eks.png" alt="Amazon EKS managed Kubernetes" style="width:600px;"/></div> (EKS),
 
-The [steps to create an EKS cluster](https://medium.com/@Instaclustr/anomalia-machina-7-kubernetes-cluster-creation-and-application-deployment-e10f19132809).
+The [steps to create an EKS cluster](https://medium.com/@Instaclustr/anomalia-machina-7-kubernetes-cluster-creation-and-application-deployment-e10f19132809)
+are fairly involved compared to other cloud providers.
 
 ### Digital Ocean
 Digital Ocean has a managed Kubernetes service.
@@ -697,8 +698,8 @@ compare cloud host solutions, where the lowest price depends significantly on wh
 Multi-cloud solution; host with (AWS,...Digital Ocean)
 
 ### Red Hat OpenShift
-Red Hat Openshift has some strong references, including being the
-  [Kubernetes++ I didn't know I wanted](@paul_snively/status/1081920163484782594).
+Red Hat Openshift has some strong references, including being the (@paul_snively)
+  ["Kubernetes++ I didn't know I wanted"](@paul_snively/status/1081920163484782594).
 Openshift interface is readily installed on MacOS, Red Hat Linux, and Fedora Linux.
 
 <!--- Demonstrate with Amazon AMI.  --->
@@ -709,7 +710,7 @@ Open source tools...
 ### k3s
 [K3s](https://k3s.io/) is an easily installed Kubernetes distribution for resource-constrained environments.
 TLS certificates are automatically generated to ensure that all communication is secure by default.
-A k3 demo](https://info.rancher.com/meetup-k3s-lightweight-kubernetes) is available.
+A [k3 demo](https://info.rancher.com/meetup-k3s-lightweight-kubernetes) is available.
 <!--- GKE is the only decent k8s implementation, EKS and AKS are not real contenders id=18080390 --->
 
 k3s is installed from a single binary, containing everything needed to run Kubernetes. Installing k3s:
@@ -725,8 +726,8 @@ k3s does not work on WSL, which is like a Linux single user mode. k3s requires s
 Running k3s on Windows requires running Linux under Vmware or Virtualbox.
 
 ## Deploying to Kubernetes
-Setting up Kubernetes on a managed cluster is easy (e.g. GKE), but
-  [there is nothing easy about what is required after that](https://twitter.com/kelseyhightower/status/1158367402838679552)
+Setting up Kubernetes on a managed cluster is easy (e.g. GKE), but there is
+  [nothing easy about what is required after that](https://twitter.com/kelseyhightower/status/1158367402838679552)
 
 ## Monitoring Kubernetes
 Kubernetes offers a powerful orchestration capability, but lacks many features needed to run cloud deployments in production.
