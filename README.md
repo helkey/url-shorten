@@ -636,7 +636,30 @@ The first step is to set up a [Google services account file](https://www.packer.
 This services account file is not required if running the Packer builder from a properly-configured GCE instance.
 Here is an example of building the URL shortener address server using a Packer file.
 
+Install the Google Cloud SDK](https://cloud.google.com/sdk/docs/) on Ubuntu/WSL:
+```sh
+echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
+sudo apt-get update && sudo apt-get install google-cloud-sdk
+curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key --keyring /usr/share/keyrings/cloud.google.gpg add -
+sudo apt-get update && sudo apt-get install google-cloud-sdk
+sudo apt-get install google-cloud-sdk-app-engine-go
+gcloud init
+```
+then follow the instructions to log in to the gcloud CLI, set [default region/zone](https://cloud.google.com/compute/docs/gcloud-compute/)
+and [cloud storage defaults](https://cloud.google.com/storage/docs/gsutil/commands/config). This will probably require
+[billing to be enabled](https://cloud.google.com/billing/docs/how-to/modify-project), but presently Google offers a $300
+credit for the first year of use.
+```sh
+gcloud compute project-info add-metadata \
+    --metadata google-compute-default-region=europe-west1,google-compute-default-zone=europe-west1-b
+```
+
+Select a project to use from the https://console.cloud.google.com/cloud-resource-manager), and a Linux source image.
+Here we will use a CentOS (or Red Hat) image for compatibility with the AWS Linux2 images.
+
 Find a suitable image (yum installer: Red Hat & CentOS Linux)
+
+Set up a Google cloud [service account key](https://www.packer.io/docs/builders/googlecompute.html), and download as a .json file into the default gcloud directory (~/.config/gcloud/).
 
 http://blog.shippable.com/build-a-gcp-vm-image-using-packer
 ```Packer
@@ -647,10 +670,10 @@ http://blog.shippable.com/build-a-gcp-vm-image-using-packer
     "builders": [{
       "type": "googlecompute",
       "account_file": "account.json",
-      "project_id": "my project",
-      "source_image": "debian-7-wheezy-v20150127",
+      "machine_type": "n1-standard-1"
+      "project_id": "urlshorten-2505",
+      "source_image_family": "centos-7",
       "ssh_username": "root",
-      "zone": "us-west1-a"
     }],
       "provisioners": [
     {
@@ -670,8 +693,11 @@ http://blog.shippable.com/build-a-gcp-vm-image-using-packer
 }
 ```
 
-https://cloud.google.com/sdk/install
-Create a GCP project, enable billing, install the [GCP SDK](https://cloud.google.com/sdk/docs/downloads-apt-get)
+The default region can be set in gcloud, or specified as an [option at build time](https://dzone.com/articles/build-a-gce-vm-image-using-packer).
+Other Packer parameters like source_image_family can be left blank in the Packerfile and specified at build time:
+```sh
+packer build -var region="us-west1" -var zone="us-west1a" -var source_image_family="centos-7" -var machine_type="n1-standard-1"  packer.json`
+```
 
 ### Azure
 Kubernetes on Azure can be deployed [from a command line interface](https://dev.to/azure/kubernetes-from-the-beginning-part-i-4ifd).
