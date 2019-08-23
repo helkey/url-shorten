@@ -1,0 +1,21 @@
+{
+    "variables": {
+	"db_password": "{{env `TF_VAR_db_password`}}"
+    },
+    "builders": [{
+      "type": "googlecompute",
+      "machine_tyhpe": "n1-standard-1"
+      "project_id": "urlshorten-2505",
+      "source_image": "centos-7",
+      "ssh_username": "root",
+    }],
+      "provisioners": [
+    {	  
+      "type": "shell",
+      "inline": [
+        "sleep 30",
+        "sudo yum -y update"
+      ]
+    }]
+}
+
