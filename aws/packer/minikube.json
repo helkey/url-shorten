@@ -1,0 +1,40 @@
+{
+    "variables": {
+	"aws_access_key": "{{env `AWS_ACCESS_KEY_ID`}}",
+	"aws_secret_key": "{{env `AWS_SECRET_ACCESS_KEY`}}"
+    },
+    "builders": [{
+	"type": "amazon-ebs",
+	"access_key": "{{user `aws_access_key`}}",
+	"secret_key": "{{user `aws_secret_key`}}",
+	"region": "us-west-1",
+	"source_ami_filter": {
+	    "filters": {
+		"virtualization-type": "hvm",
+		"name": "amzn2-ami-hvm-2.0.*-x86_64-gp2",
+		"root-device-type": "ebs"
+	    },
+	    "owners": ["137112412989"],
+	    "most_recent": true
+	},
+	"instance_type": "t2.micro",
+	"ssh_username": "ec2-user",
+	"ami_name": "ami-addr {{timestamp}}"
+    }],
+      "provisioners": [
+    {	  
+      "type": "shell",
+      "inline": [
+        "sleep 30",
+        "sudo yum update -y",
+        "sudo amazon-linux-extras install docker -y",
+        "sudo usermod -a -G docker ec2-user",
+        "curl -Lo https://storage.googleapis.com/kubernetes-release/release/v1.15.3/bin/darwin/amd64/kubectl",
+        "chmod +x ./kubectl",
+          "sudo mv ./kubectl /usr/local/bin/",
+              "curl -Lo minikube https://github.com/kubernetes/minikube/releases/download/v1.3.1/minikube-linux-amd64",
+        "chmod +x minikube",
+        "sudo mv ./minikube /usr/local/bin/"
+    }]
+}
+
