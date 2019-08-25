@@ -606,6 +606,7 @@ Kubernetes is particularly well suited for a hybrid server use case, for example
 ### Etcd
 [Etcd](https://etcd.io) is a distributed key-value store used for the most critical data in a distributed system.
 [A Closer Look at Etcd: The Brain of a Kubernetes Cluster](https://medium.com/better-programming/a-closer-look-at-etcd-the-brain-of-a-kubernetes-cluster-788c8ea759a5)
+
     !fig: etcd on the Kubernetes master nodes (Kubernetes documentation)
     !fig: etcd deployed to an external cluster (Kubernetes documentation)
 
@@ -644,14 +645,13 @@ Digital Ocean has a pricing page that allows comparison of Amazon AWS, Google, a
 This can be used to compare cloud host solutions, where the lowest price depends significantly on whether the applicaton is CPU, storage, or transfer bandwidth limited.
 
 <div style="margin-left: 150px">
-  <img src="figs/price_comparison_transfer_CPU_driven.png" alt="CPU-driven cost" style="width:600px;"/>
-  <img src="figs/price_comparison_storage_driven.png" alt="Storage-driven cost" style="width:600px;"/>
-  <img src="figs/price_comparison_transfer_data_driven.png" alt="Transfer data driven cost" style="width:600px;"/>
+  <img src="figs/price_comparison_CPU_driven.png" alt="CPU-driven cost" style="width:200px;"/>
+  <img src="figs/price_comparison_storage_driven.png" alt="Storage-driven cost" style="width:200px;"/>
+  <img src="figs/price_comparison_transfer_data_driven.png" alt="Transfer data driven cost" style="width:200px;"/>
 </div>
 
-This Digital Ocean comparison needs to be taken with a grain of salt. For example, it looks to be using the cost of reserved instances.
-Hosting costs can be reduced significantly by using a mix of reserved and low-price spot instances, but additional engineering required
-to set this up properly.
+This Digital Ocean price comparison is using the cost of reserved instances. Hosting costs can be reduced significantly
+by using a mix of reserved and low-price spot instances, but this requires additional engineering effort to set this up.
 
 ### Google
 Google has the most polished managed Kubernetes service (which comes as no surprise, as Kubernetes was developed at Google).
@@ -659,7 +659,7 @@ Google has the most polished managed Kubernetes service (which comes as no surpr
 
 Tools like Hashicorp Packer somewhat reduce the effort of supporting multiple cloud vendors by providing common tooling across platforms.
 Here Packer will be used to build [Google Compute Engine images] for deploying to Kubernetes on GKE. Packer can also be integrated
-into a continuous integration workflow, for instance using [Jenkins](https://cloud.google.com/solutions/automated-build-images-with-jenkins-kubernetes)
+into a continuous integration workflow, for instance using [Jenkins](https://cloud.google.com/solutions/automated-build-images-with-jenkins-kubernetes).
 
 The first step is to set up a [Google services account file](https://www.packer.io/docs/builders/googlecompute.html).
 This services account file is not required if running the Packer builder from a properly configured GCE instance.
@@ -691,14 +691,14 @@ Set up a Google cloud [service account key](https://www.packer.io/docs/builders/
 
 ### Azure
 Kubernetes on Azure can be deployed [from a command line interface](https://dev.to/azure/kubernetes-from-the-beginning-part-i-4ifd).
-Start by setting up an Azure [account](https://azure.microsoft.com/en-us/free/) and get a $200 credit during the first 12 months of use.
+Start by setting up an Azure [account](https://azure.microsoft.com/en-us/free/), and get a $200 credit during the first 12 months of use.
 
 ### Amazon EKS
 Amazon was an early leader in cluster management with their proprietary Amazon EC2 Container Service (ECS).
 The rapid rise of Kubernetes as an open source solution has left Amazon somewhat behind in deploying managed Kubernetes services.
 
-Amazon now has [Elastic Kubernetes Service](https://docs.aws.amazon.com/eks/latest/userguide/what-is-eks.html)
-which requires more [manual configuration]() to set up than for GCP.<div style="margin-left: 150px"><img src="figs/what-is-eks.png" alt="Amazon EKS managed Kubernetes" style="width:600px;"/></div> (EKS),
+Amazon now offers [Elastic Kubernetes Service](https://docs.aws.amazon.com/eks/latest/userguide/what-is-eks.html).
+<div style="margin-left: 150px"><img src="figs/what-is-eks.png" alt="Amazon EKS managed Kubernetes" style="width:600px;"/></div> (EKS),
 
 The [steps to create an EKS cluster](https://medium.com/@Instaclustr/anomalia-machina-7-kubernetes-cluster-creation-and-application-deployment-e10f19132809)
 are fairly involved compared to other Kubernetes cloud providers.
@@ -715,7 +715,7 @@ Red Hat Openshift has some strong references, including being the (@paul_snively
   ["Kubernetes++ I didn't know I wanted"](@paul_snively/status/1081920163484782594).
 Openshift interface is readily installed on MacOS, Red Hat Linux, and Fedora Linux.
 Openshift needs to be installed directly on the host OS, not in a virtual machine.
-    <!--- Demonstrate on AWS instance.  --->
+<!--- Demonstrate on AWS instance.  --->
 
 ### AppsCode:
 Open source tools...
@@ -724,9 +724,9 @@ Open source tools...
 Minikube can [be installed](https://kubernetes.io/docs/tasks/tools/install-minikube/) on a local machine
 to simplify testing without setting up cloud resources. To check if virtualization is supported on Linux
 verify that the following command has a non-empty output.
-'''sh
+```sh
 grep -E --color 'vmx|svm' /proc/cpuinfo
-'''
+```
 
 ### k3s
 [K3s](https://k3s.io/) is an easily installed Kubernetes distribution for resource-constrained environments.
@@ -750,8 +750,7 @@ It looked significantly easier to set up Kubernetes on Google than Amazon, so GK
 Needed to set up a ** file for providing Terraform with access.
 
 
-### Terraform
-
+### Database Allocation - Terraform
 Set up a Terraform provider for GKE [Google Cloud provider](https://cloud.google.com/community/tutorials/getting-started-on-gcp-with-terraform).
 
 [embedmd]:# (gke/terraform/gcp_provider.tf)
@@ -778,7 +777,7 @@ resource "google_sql_user" "users" {
 }
 ```
 
-### Docker
+### Docker Build
 GKE presently deploys only Docker modules, so the microservices each need to be packaged in a Docker container.
 The Go applications should be [statically compiled](https://blog.codeship.com/building-minimal-docker-containers-for-go-applications/)
 for running in a Linux container.
@@ -789,13 +788,27 @@ CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main
 Install the application in a Docker container
 ```YAML
 ```
-And compiled the container
+Note that if the application makes SSL requests, SSL root certificates must also be
+[added to the Docker container](https://blog.codeship.com/building-minimal-docker-containers-for-go-applications/).
+
+Compile and run the container
 ```sh
 docker build -t reqaddr-image .
+docker run reqaddr-image
 ```
 
-If the application makes SSL requests, SSL root certificates must also be
-[added to the Docker container](https://blog.codeship.com/building-minimal-docker-containers-for-go-applications/).
+Assign static IP addresses for the address server, url shortener, and url expander services.
+```
+gcloud compute addresses create addr-reqaddr --region us-west1
+gcloud compute addresses create addr-reqshort --region us-west1
+gcloud compute addresses create addr-reqexpand --region us-west1
+```
+IP address `addr-reqaddr` should be a private IP, 
+it is more convenient to start with a public IP address but for testing purposes.
+
+### Kubernetes Deploy
+In a production deployment, separate Kubernetes pods would be used for URL shortener and URL expander microservices.
+Here they are combined together to reduce testing resource usage.
 
 
 
