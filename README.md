@@ -720,6 +720,14 @@ Openshift needs to be installed directly on the host OS, not in a virtual machin
 ### AppsCode:
 Open source tools...
 
+### Minikube
+Minikube can [be installed](https://kubernetes.io/docs/tasks/tools/install-minikube/) on a local machine
+to simplify testing without setting up cloud resources. To check if virtualization is supported on Linux
+verify that the following command has a non-empty output.
+'''sh
+grep -E --color 'vmx|svm' /proc/cpuinfo
+'''
+
 ### k3s
 [K3s](https://k3s.io/) is an easily installed Kubernetes distribution for resource-constrained environments.
 TLS certificates are automatically generated to ensure that all communication is secure by default.
@@ -737,62 +745,58 @@ To add more nodes to the cluster, run `k3s agent --server ${URL} --token ${TOKEN
 k3s does not work on WSL, as WSL is like a Linux in single user mode. k3s requires systemd or openrc as a process supervisor.
 Running k3s on Windows requires running Linux under Vmware or Virtualbox.
 
-## Deploying to Kubernetes
-Setting up Kubernetes on a managed cluster is easy (e.g. GKE), but there is
-  [nothing easy about what is required after that](https://twitter.com/kelseyhightower/status/1158367402838679552)
+## Deploying to Kubernetes (GKE)
+It looked significantly easier to set up Kubernetes on Google than Amazon, so GKE was used for deployment.
+Needed to set up a ** file for providing Terraform with access.
+
 
 ### Terraform
 
-Initialize Terraform [Google Cloud provider](https://cloud.google.com/community/tutorials/getting-started-on-gcp-with-terraform)
+Set up a Terraform provider for GKE [Google Cloud provider](https://cloud.google.com/community/tutorials/getting-started-on-gcp-with-terraform).
 
 [embedmd]:# (gke/terraform/gcp_provider.tf)
 
-compute instances
+Set up GCP databases. The addr database can be combined with one of the url databases during testing to reduce resources needed.
+The database user/password needs to be set up [after initializing the database](https://www.terraform.io/docs/providers/google/r/sql_user.html).
 
-and databases
+```tf
+// Use `google_sql_user` to define user host, password
+resource "google_sql_database_instance" "addr" {
+  name = "db-addr"
+  database_version = "POSTGRES_9_6"
+  region = "us-west1"
+  settings {
+    tier = "db-f1-micro"
+  }
+}
 
-
-### Packer
-http://blog.shippable.com/build-a-gcp-vm-image-using-packer
-
-[embedmd]:# (tls/ca-config.json)
-
-```Packer
-{
-    "variables": {
-	"db_password": "{{env `TF_VAR_db_password`}}"
-    },
-    "builders": [{
-      "type": "googlecompute",
-      "account_file": "account.json",
-      "machine_type": "n1-standard-1"
-      "project_id": "urlshorten-2505",
-      "source_image_family": "centos-7",
-      "ssh_username": "root",
-    }],
-      "provisioners": [
-    {
-      "type": "file",
-      "source": "../ReqAddr",
-      "destination": "/tmp/ReqAddr"
-    },
-    {	  
-      "type": "shell",
-      "inline": [
-        "sudo chmod 700 /tmp/ReqAddr",
-        "sudo mv /tmp/ReqAddr /var/lib/cloud/scripts/per-boot/",
-        "sleep 30",
-        "sudo yum -y update"
-      ]
-    }]
+resource "google_sql_user" "users" {
+  name     = "postgres"
+  instance = "${google_sql_database_instance.addr.name}"
+  password = "${var.db_password}"   // Password is stored in TF state file. Encrypt state file,
+                                    //  or modify afterward 
 }
 ```
 
-The default region can be set in gcloud, or specified as an [option at build time](https://dzone.com/articles/build-a-gce-vm-image-using-packer).
-Other Packer parameters like source_image_family can be left blank in the Packerfile and specified at build time:
+### Docker
+GKE presently deploys only Docker modules, so the microservices each need to be packaged in a Docker container.
+The Go applications should be [statically compiled](https://blog.codeship.com/building-minimal-docker-containers-for-go-applications/)
+for running in a Linux container.
+
 ```sh
-packer build -var region="us-west1" -var zone="us-west1a" -var source_image_family="centos-7" -var machine_type="n1-standard-1"  packer.json`
+CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main
 ```
+Install the application in a Docker container
+```YAML
+```
+And compiled the container
+```sh
+docker build -t reqaddr-image .
+```
+
+If the application makes SSL requests, SSL root certificates must also be
+[added to the Docker container](https://blog.codeship.com/building-minimal-docker-containers-for-go-applications/).
+
 
 
 ## Monitoring Kubernetes

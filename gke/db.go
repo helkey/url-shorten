@@ -31,11 +31,6 @@ func dbPassword() (password string) {
 		return os.Args[1]
 	}
 
-	// Specify db password as compile-time argument
-	//   e.g. go build -ldflags "-X db.db_password=$TF_VAR_db_password"
-	const db_password = "rj_59_azazaz"
-	return db_password
-
 	/* db password from environment variable
 	const password_env_variable = "TF_VAR_db_password"
 	password = os.Getenv(password_env_variable)
@@ -44,6 +39,10 @@ func dbPassword() (password string) {
 	}
 	fmt.Println(password)
 	return password */
+
+	// Specify db password as compile-time argument
+	//   e.g. go build -ldflags "-X db.db_password=$TF_VAR_db_password"
+	return db_password
 }
 
 // Number of rows in db

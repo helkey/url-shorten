@@ -24,7 +24,8 @@ func OpenAddrDB(passwd string) (dB DB, err error) {
 			err = errors.New(e)
 		}
 	}()
-	
+
+	fmt.Println("password", passwd)
 	dbInfo := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
 		hostAddr, portAddr, dbUser, passwd, dbName)
 	db, err := sql.Open(dbType, dbInfo)
