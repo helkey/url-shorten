@@ -650,7 +650,7 @@ This can be used to compare cloud host solutions, where the lowest price depends
   <img src="figs/price_comparison_transfer_data_driven.png" alt="Transfer data driven cost" style="width:200px;"/>
 </div>
 
-This Digital Ocean price comparison is using the cost of reserved instances. Hosting costs can be reduced significantly
+This Digital Ocean price comparison apparently uses the cost of reserved instances. Hosting costs can be reduced significantly
 by using a mix of reserved and low-price spot instances, but this requires additional engineering effort to set this up.
 
 ### Google
@@ -745,10 +745,20 @@ To add more nodes to the cluster, run `k3s agent --server ${URL} --token ${TOKEN
 k3s does not work on WSL, as WSL is like a Linux in single user mode. k3s requires systemd or openrc as a process supervisor.
 Running k3s on Windows requires running Linux under Vmware or Virtualbox.
 
-## Deploying to Kubernetes (GKE)
-It looked significantly easier to set up Kubernetes on Google than Amazon, so GKE was used for deployment.
-Needed to set up a ** file for providing Terraform with access.
+## Kubernetes Orchestration (GKE)
+GKE was chosen for deployment, as it looked significantly easier to set up Kubernetes on Google than Amazon.
+Steps to [deploy on GKE](https://cloud.google.com/kubernetes-engine/docs/tutorials/hello-app)are:
+* Create a GKE project on the Google Cloud Platform Console (don't use upper-case letters)
+* Enable billing for project (Google offering $300 credit for up to one year)
+* Package app into a Docker image
+* Validate locally using Minikube (if desired)
+* Upload Docker image to registry
+* Create GKE container cluster
+* Deploy app to cluster
+* Expose app to Internet
+* Scale up ydeployment
 
+Needed to set up a ** access file for providing Terraform with access.
 
 ### Database Allocation - Terraform
 Set up a Terraform provider for GKE [Google Cloud provider](https://cloud.google.com/community/tutorials/getting-started-on-gcp-with-terraform).
@@ -781,38 +791,115 @@ resource "google_sql_user" "users" {
 GKE presently deploys only Docker modules, so the microservices each need to be packaged in a Docker container.
 The Go applications should be [statically compiled](https://blog.codeship.com/building-minimal-docker-containers-for-go-applications/)
 for running in a Linux container.
-
 ```sh
 CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main
 ```
-Install the application in a Docker container
-```YAML
+
+Install the application in a Docker container (it is possible to compress images so that they are much smaller):
+```sh
+FROM golang:alpine
+RUN mkdir /app
+Add ReqAddr /app/ReqAddr
+CMD ["/app/ReqAddr"]
 ```
 Note that if the application makes SSL requests, SSL root certificates must also be
 [added to the Docker container](https://blog.codeship.com/building-minimal-docker-containers-for-go-applications/).
 
-Compile and run the container
+Compile and run the container:
 ```sh
 docker build -t reqaddr-image .
 docker run reqaddr-image
+
+Set up a project folder on dockerhub, and use the same project name in GKE.
+```sh
+docker login --username=dockerusername
+docker images
+docker tag tag# dockerusername/urlshorten:reqaddr-image
+docker push dockerusername/urlshorten:reqaddr-image
+// (optional) docker save reqaddr-image > reqaddr-image.tar
+```
+If you have trouble pushing to Docker, it may help to explicitly set your username as a collaborator,
+or to first set your project folder to `private`.
+
+### Kubernetes Minikube Deployment
+Deploy Docker reqaddr-image to Kubernetes running on local development machine.
+```sh
+minikube start --vm-driver "hyperv"
+kubectl create deployment reqaddr-node --image=reqaddr-image
+kubectl get deployments
+kubectl get pods
 ```
 
-Assign static IP addresses for the address server, url shortener, and url expander services.
+Expose the port using kubectl LoadBalancer function.
+```sh
+kubectl expose deployment reqaddr-node --type=LoadBalancer --port=8088
+kubectl get services
+```
+Minikube does not have a real load balancer, but the following command should open
+the service in a web browser.
+```sh
+minikube service reqaddr-node
+```
+If this doesn't provide external access to the pod, there are a variety of
+[other methods](https://blog.codonomics.com/2019/02/loadbalancer-support-with-minikube-for-k8s.html) (including 'minikube tunnel') which may help.
+Alternately, [Katacoda]() offers web-based Kubernetes emulation.
+
+Shut down local Kubernetes service.
+```sh
+kubectl delete service reqaddr-node
+kubectl delete deployment reqaddr-node
+minikube stop
+```
+
+In a production deployment, separate Kubernetes pods would be used for URL shortener and URL expander microservices.
+Here the microservices can be combined into a single pod to reduce testing resource usage.
+
+
+### Kubernetes GKE Deployment
+Configure the Docker CLI to [authenticate to GKE Container Registry](https://cloud.google.com/kubernetes-engine/docs/tutorials/hello-app)
+(only need to run this once).
+```sh
+gcloud auth configure-docker
+```
+
+Create a two-node cluster named url-cluster
+```sh
+gcloud config set compute/zone us-west1-a
+gcloud container clusters create url-cluster --num-nodes=2
+NAME         LOCATION    MASTER_VERSION  MASTER_IP      MACHINE_TYPE   NODE_VERSION   NUM_NODES  STATUS
+url-cluster  us-west1-a  1.12.8-gke.10   35.185.221.94  n1-standard-1  1.12.8-gke.10  2          RUNNING
+
+gcloud container clusters get-credentials url-cluster
+gcloud compute instances list
+NAME                                        ZONE        MACHINE_TYPE   PREEMPTIBLE  INTERNAL_IP  EXTERNAL_IP    STATUS
+gke-url-cluster-default-pool-7c467987-l8n7  us-west1-a  n1-standard-1               10.138.0.2   34.83.188.145  RUNNING
+gke-url-cluster-default-pool-7c467987-s3d4  us-west1-a  n1-standard-1               10.138.0.3   34.83.117.26   RUNNING
+```
+
+Deploy application using kubectl
+```sh
+kubectl create deployment url-app --image=gcr.io/dockerusername/urlshorten/reqaddr-image
+kubectl get pods
+
+```
+Allocate static IP addresses for the address server (and for url shortener and url expander services if desired)
 ```
 gcloud compute addresses create addr-reqaddr --region us-west1
-gcloud compute addresses create addr-reqshort --region us-west1
-gcloud compute addresses create addr-reqexpand --region us-west1
 ```
-IP address `addr-reqaddr` should be a private IP, 
-it is more convenient to start with a public IP address but for testing purposes.
+IP address `addr-reqaddr` should be a private IP, but it is more convenient
+to start with a public IP address for testing purposes.
 
-### Kubernetes Deploy
-In a production deployment, separate Kubernetes pods would be used for URL shortener and URL expander microservices.
-Here they are combined together to reduce testing resource usage.
+```
+kubectl delete service url-app
+gcloud container clusters delete url-cluster
+```
 
+## Kubernetes Orchestration
+Kubernetes [orchestration functions](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/) include
+creating a deployment, updating the sate of pods, rolling back to an earlier revision, scaling up deployment,
+monitoring deployment rollout, and cleaning up unneeded ReplicaSets.
 
-
-## Monitoring Kubernetes
+### Monitoring Kubernetes
 Kubernetes offers a powerful orchestration capability, but lacks many features needed to run cloud deployments in production.
 Many competing software services have been quickly built up to provide these features, leading to a fragmented software ecosystem.
 
