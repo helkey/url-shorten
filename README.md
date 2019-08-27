@@ -197,7 +197,7 @@ Chef and Ansible. In this example, each instance is running a single Go binary.
 This server application is put in the `scripts/per-boot` folder, so that it runs
 on startup, and after any reboot of the AWS instance.
 
-```Packer
+```packer
 {
     ...
     "builders": [{
@@ -412,7 +412,6 @@ resource "aws_security_group" "nat" {
     cidr_blocks = ["0.0.0.0/0"]
   }
   ...
-  
 ```
 
 ### Load Balancer
@@ -768,7 +767,7 @@ Set up a Terraform provider for GKE [Google Cloud provider](https://cloud.google
 Set up GCP databases. The addr database can be combined with one of the url databases during testing to reduce resources needed.
 The database user/password needs to be set up [after initializing the database](https://www.terraform.io/docs/providers/google/r/sql_user.html).
 
-```tf
+```terraform
 // Use `google_sql_user` to define user host, password
 resource "google_sql_database_instance" "addr" {
   name = "db-addr"
@@ -811,11 +810,12 @@ docker build -t reqaddr-image .
 docker run reqaddr-image
 
 Set up a project folder on dockerhub, and use the same project name in GKE.
+Push Docker image to Google Container Registry.
 ```sh
 docker login --username=dockerusername
 docker images
-docker tag tag# dockerusername/urlshorten:reqaddr-image
-docker push dockerusername/urlshorten:reqaddr-image
+docker tag reqaddr gcr.io/urlshorten-2505/reqaddr-image:tagname
+docker push gcr.io/urlshorten-2505reqaddr-image
 // (optional) docker save reqaddr-image > reqaddr-image.tar
 ```
 If you have trouble pushing to Docker, it may help to explicitly set your username as a collaborator,
@@ -835,14 +835,16 @@ Expose the port using kubectl LoadBalancer function.
 kubectl expose deployment reqaddr-node --type=LoadBalancer --port=8088
 kubectl get services
 ```
+
 Minikube does not have a real load balancer, but the following command should open
 the service in a web browser.
 ```sh
 minikube service reqaddr-node
 ```
-If this doesn't provide external access to the pod, there are a variety of
-[other methods](https://blog.codonomics.com/2019/02/loadbalancer-support-with-minikube-for-k8s.html) (including 'minikube tunnel') which may help.
-Alternately, [Katacoda]() offers web-based Kubernetes emulation.
+
+If this service request doesn't provide access to the pod, there are a variety of
+[other methods](https://blog.codonomics.com/2019/02/loadbalancer-support-with-minikube-for-k8s.html) (including 'minikube tunnel')
+which may help. Alternately, [Katacoda]() offers web-based Kubernetes emulation.
 
 Shut down local Kubernetes service.
 ```sh
@@ -851,10 +853,6 @@ kubectl delete deployment reqaddr-node
 minikube stop
 ```
 
-In a production deployment, separate Kubernetes pods would be used for URL shortener and URL expander microservices.
-Here the microservices can be combined into a single pod to reduce testing resource usage.
-
-
 ### Kubernetes GKE Deployment
 Configure the Docker CLI to [authenticate to GKE Container Registry](https://cloud.google.com/kubernetes-engine/docs/tutorials/hello-app)
 (only need to run this once).
@@ -862,41 +860,68 @@ Configure the Docker CLI to [authenticate to GKE Container Registry](https://clo
 gcloud auth configure-docker
 ```
 
-Create a two-node cluster named url-cluster
+Create a two-node cluster named url-cluster (after setting the default compute zone):
 ```sh
 gcloud config set compute/zone us-west1-a
 gcloud container clusters create url-cluster --num-nodes=2
 NAME         LOCATION    MASTER_VERSION  MASTER_IP      MACHINE_TYPE   NODE_VERSION   NUM_NODES  STATUS
-url-cluster  us-west1-a  1.12.8-gke.10   35.185.221.94  n1-standard-1  1.12.8-gke.10  2          RUNNING
+url-cluster  us-west1-b  1.12.8-gke.10   35.230.60.84  n1-standard-1  1.12.8-gke.10  2          RUNNING
 
 gcloud container clusters get-credentials url-cluster
 gcloud compute instances list
 NAME                                        ZONE        MACHINE_TYPE   PREEMPTIBLE  INTERNAL_IP  EXTERNAL_IP    STATUS
-gke-url-cluster-default-pool-7c467987-l8n7  us-west1-a  n1-standard-1               10.138.0.2   34.83.188.145  RUNNING
-gke-url-cluster-default-pool-7c467987-s3d4  us-west1-a  n1-standard-1               10.138.0.3   34.83.117.26   RUNNING
+gke-url-cluster-default-pool-9069d89a-d4c2  us-west1-b  n1-standard-1               10.138.0.7   34.83.117.26   RUNNING
+gke-url-cluster-default-pool-9069d89a-pblw  us-west1-b  n1-standard-1               10.138.0.6   34.83.188.145  RUNNING
 ```
 
-Deploy application using kubectl
+IP address `addr-reqaddr` should be a private IP, but it is more convenient to start with a public IP address for testing purposes.
+Allocate static IP addresses for the address server (later for url shortener and url expander services as well)
 ```sh
-kubectl create deployment url-app --image=gcr.io/dockerusername/urlshorten/reqaddr-image
-kubectl get pods
-
-```
-Allocate static IP addresses for the address server (and for url shortener and url expander services if desired)
-```
 gcloud compute addresses create addr-reqaddr --region us-west1
+gcloud compute addresses list
 ```
-IP address `addr-reqaddr` should be a private IP, but it is more convenient
-to start with a public IP address for testing purposes.
+34.83.95.20
 
+Using kubectl, deploy application(s) to the [Container Registry](https://cloud.google.com/container-registry).
+```sh
+kubectl create deployment url-app --image=gcr.io/urlshorten-2505/reqaddr:v0
+kubectl get pods
+NAME                       READY   STATUS    RESTARTS   AGE
+url-app-7ddbfb85dd-glfhz   1/1     Running   0          16s
 ```
-kubectl delete service url-app
+
+[Connect to the url-app service](https://cloud.google.com/kubernetes-engine/docs/tutorials/hello-app)
+  by instantiating a load balancer, and assigning a public IP (in this case specifying the static IP assigned earlier).
+```sh
+kubectl expose deployment url-app --type=LoadBalancer --port 80 --target-port 8088 --load-balancer-ip='1.2.3.4'
+kubectl get services | grep url-app
+```
+
+[Delete deployment](https://coreos.com/tectonic/docs/latest/tutorials/sandbox/deleting-deployment.html)
+```sh
+kubectl get all
+kubectl delete deployment.apps/url-app
 gcloud container clusters delete url-cluster
 ```
 
+### Troubleshooting Kubernetes Deployment
+[Most Common Reasons Kubernetes Deployments Fail](https://kukulinski.com/10-most-common-reasons-kubernetes-deployments-fail-part-1/)
+Two of the most common problems are
+  (a) having the wrong container image specified, and
+  (b) trying to use private images without providing registry credentials.
+
+[Debugging document for Services](http://kubernetes.io/docs/user-guide/debugging-services/)
+
+[Debugging load balancer](https://stackoverflow.com/questions/35833018/how-can-i-debug-why-a-kubernetes-load-balancer-service-isnt-responding-on-a-por/36407959)
+```
+kubectl logs <pod name>
+kubectl describe pod <pod name> # SSH to pod and run Docker
+```
+
+
 ## Kubernetes Orchestration
 Kubernetes [orchestration functions](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/) include
-creating a deployment, updating the sate of pods, rolling back to an earlier revision, scaling up deployment,
+creating a deployment, updating the state of pods, rolling back to an earlier revision, scaling up deployment,
 monitoring deployment rollout, and cleaning up unneeded ReplicaSets.
 
 ### Monitoring Kubernetes
