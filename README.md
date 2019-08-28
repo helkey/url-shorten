@@ -537,7 +537,7 @@ Continuous integration (CI) and continuous deliver (CD) are important for teams 
 AWS [CodeBuild](https://aws.amazon.com/codebuild/) and CodeDeploy provides CI/CD from GitHub code
 to AWS EC2 server instances. [CircleCI](https://circleci.com/) is a very popular open-source CI/CD solution.
 
-[Github Matrix](https://github.com/features/actions?utm_campaign=1565284208) lets you test on Linux, MacOS, Windows, containers, as well as multiple runtime versions,(see Concourse CI). simultaneously.
+[Github Matrix](https://github.com/features/actions) lets you test on Linux, MacOS, Windows, containers, as well as multiple runtime versions,(see Concourse CI). simultaneously.
 
 <div style="margin-left: 150px"><img src="figs/github_matrix.png" alt="Github matrix continuous integration" style="width:600px;"/></div>
 
@@ -794,7 +794,7 @@ for running in a Linux container.
 CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main
 ```
 
-Install the application in a Docker container (it is possible to compress images so that they are much smaller):
+Install the application in a Docker container (it is possible to compress these Go-based images so that they are much smaller):
 ```sh
 FROM golang:alpine
 RUN mkdir /app
@@ -806,16 +806,19 @@ Note that if the application makes SSL requests, SSL root certificates must also
 
 Compile and run the container:
 ```sh
+docker stop $(docker ps -a -q)
+docker system prune --volumes
 docker build -t reqaddr-image .
-docker run reqaddr-image
+docker inspect reqaddr-image
+docker run -p 8088:8088 reqaddr-image
 
 Set up a project folder on dockerhub, and use the same project name in GKE.
 Push Docker image to Google Container Registry.
 ```sh
 docker login --username=dockerusername
 docker images
-docker tag reqaddr gcr.io/urlshorten-2505/reqaddr-image:tagname
-docker push gcr.io/urlshorten-2505reqaddr-image
+docker tag reqaddr-image gcr.io/urlshorten-2505/reqaddr:tagname
+docker push gcr.io/urlshorten-2505/reqaddr
 // (optional) docker save reqaddr-image > reqaddr-image.tar
 ```
 If you have trouble pushing to Docker, it may help to explicitly set your username as a collaborator,
@@ -880,11 +883,11 @@ Allocate static IP addresses for the address server (later for url shortener and
 gcloud compute addresses create addr-reqaddr --region us-west1
 gcloud compute addresses list
 ```
-34.83.95.20
 
 Using kubectl, deploy application(s) to the [Container Registry](https://cloud.google.com/container-registry).
 ```sh
-kubectl create deployment url-app --image=gcr.io/urlshorten-2505/reqaddr:v0
+kubectl create deployment url-app --image=gcr.io/urlshorten-2505/reqaddr:v0.1
+kubectl create deployment url-sh --image=gcr.io/urlshorten-2505/reqshort:v0.1
 kubectl get pods
 NAME                       READY   STATUS    RESTARTS   AGE
 url-app-7ddbfb85dd-glfhz   1/1     Running   0          16s
@@ -892,15 +895,21 @@ url-app-7ddbfb85dd-glfhz   1/1     Running   0          16s
 
 [Connect to the url-app service](https://cloud.google.com/kubernetes-engine/docs/tutorials/hello-app)
   by instantiating a load balancer, and assigning a public IP (in this case specifying the static IP assigned earlier).
+For this application we need 2 external IPs, and a third static IP that could be private.
+The Google initial free trial period allows only one static IP, although additional static IPs can be requested
+by authorizing a paid account (you can still use your credits allocated for the trial period).
+Quota upgrades take an estimated 2 days to process.
 ```sh
-kubectl expose deployment url-app --type=LoadBalancer --port 80 --target-port 8088 --load-balancer-ip='1.2.3.4'
+kubectl expose deployment url-app --type=LoadBalancer --port 80 --target-port 8088 --load-balancer-ip='34.83.0.0'
+kubectl expose deployment url-sh --type=LoadBalancer --port 80 --target-port 8088
 kubectl get services | grep url-app
+kubectl describe services url-app
 ```
 
 [Delete deployment](https://coreos.com/tectonic/docs/latest/tutorials/sandbox/deleting-deployment.html)
 ```sh
 kubectl get all
-kubectl delete deployment.apps/url-app
+kubectl delete deployment.apps/url-app service/url-app
 gcloud container clusters delete url-cluster
 ```
 
