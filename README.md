@@ -175,7 +175,7 @@ which allows for version control, releases, version rollback, and many other fea
 
 Containers have become a popular for server configuration, ensuring consistency between development and release cycles,
 and between local testing and cloud-based deployment. Docker is a container solution often used to provide platform independence
-and ease of managing resources.
+and ease of managing resources. For example, Google GKE only supports applications in Docker containers.
 
 The server software for this project consists of a single Go binary per instance. The Go language packages all dependencies
 into a single executable, and seems like an adequate solution for this URL shortening application without adding
@@ -271,6 +271,13 @@ infrastructure state changes.
 features, including operations features such as team management and a configuration designer tool,
 and governance features such as audit logging. Terraform Enterprise is strongly recommended for large teams
 managing infrastructure with Terraform.
+
+Terraform has [official supprt](https://github.com/hashicorp/terraform/blob/master/.github/CONTRIBUTING.md) for
+  * Amazon (AWS)
+  * Azurerm
+  * Google (GCP)
+  * Oracle (OPC)
+cloud providers. Other cloud providers are supported by community volunteers.
 
 ### AWS Infrastructure
 Terraform uses a 'provider' to specify where/how to deploy the specified resources.
