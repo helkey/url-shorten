@@ -815,9 +815,10 @@ Compile and run the container:
 ```sh
 docker stop $(docker ps -a -q)
 docker system prune --volumes
-docker build -t reqaddr-image .
+docker build -t reqaddr-image . # DONT MISS THE DOT!!!
 docker inspect reqaddr-image
 docker run -p 8088:8088 reqaddr-image
+```
 
 Set up a project folder on dockerhub, and use the same project name in GKE.
 Push Docker image to Google Container Registry.
@@ -893,8 +894,7 @@ gcloud compute addresses list
 
 Using kubectl, deploy application(s) to the [Container Registry](https://cloud.google.com/container-registry).
 ```sh
-kubectl create deployment url-app --image=gcr.io/urlshorten-2505/reqaddr:v0.1
-kubectl create deployment url-sh --image=gcr.io/urlshorten-2505/reqshort:v0.1
+kubectl create deployment url-addr --image=gcr.io/urlshorten-2505/reqaddr-image:v0.1
 kubectl get pods
 NAME                       READY   STATUS    RESTARTS   AGE
 url-app-7ddbfb85dd-glfhz   1/1     Running   0          16s
@@ -907,10 +907,29 @@ The Google initial free trial period allows only one static IP, although additio
 by authorizing a paid account (you can still use your credits allocated for the trial period).
 Quota upgrades take an estimated 2 days to process.
 ```sh
-kubectl expose deployment url-app --type=LoadBalancer --port 80 --target-port 8088 --load-balancer-ip='34.83.0.0'
+kubectl expose deployment url-addr --type=LoadBalancer --port 80 --target-port 8088 --load-balancer-ip='34.x.y.z'
+```
+
+Verify that the static IP address has been allocated, address service is running, and deploy URL shortener and URL expander services.
+```sh
+kubectl get services | grep url-addr # verify that public IP assigned
+kubectl describe services url-addr
+kubectl logs url-addr
+curl http://34.x.y.z/addr
+  363120899/1 # (example-every run will produced different address range)
+```
+
+(Assign a random public IP address - Google charges a small fee for a reserved static IP).
+```sh
+kubectl create deployment url-sh --image=gcr.io/urlshorten-2505/reqshort:v0.1
+kubectl expose deployment url-sh --type=LoadBalancer --port 80 --target-port 8088 --load-balancer-ip='35.186.222.159'
+curl http://34.83.188.145/create/?source=&url=KubernetesRocks # Get shortened URL  117.26; 188.145
+kubectl logs pod/url-sh-*podID* # verify pod responding, generating shortened URL
+```
+
+```sh
+kubectl create deployment url-sh --image=gcr.io/urlshorten-2505/reqshort:v0.1
 kubectl expose deployment url-sh --type=LoadBalancer --port 80 --target-port 8088
-kubectl get services | grep url-app
-kubectl describe services url-app
 ```
 
 [Delete deployment](https://coreos.com/tectonic/docs/latest/tutorials/sandbox/deleting-deployment.html)

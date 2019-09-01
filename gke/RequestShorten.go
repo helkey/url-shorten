@@ -63,22 +63,24 @@ func shortenHandler(w http.ResponseWriter, r *http.Request) {
 	instance := getShortenInstance() // Cloud instance identifier
 	shortInfo := fmt.Sprintf("%s shard:%v; i:%s", shortUrl, shard, instance)
 	fmt.Fprintf(w, shortInfo)
-	fmt.Println("")
+	fmt.Println(shortInfo)
 }
 
 func shortenUrl(fullUrl string) (shortUrl string, errMsg string) {
 	// Get unique shortened address
+	fmt.Println("Channel addresses in buffer:", len(chAddrSh))	
 	addrShard := <-chAddrSh
+	fmt.Println("Read channel address")
 	addr := addrShard.addr
 	shard := addrShard.shard
 
 	// Generate shortened URL using address and database shard
-	// fmt.Println("ReqShort: *" + fullUrl + "*")
+	fmt.Println("ReqShort: *" + fullUrl + "*")
 	shortUrl, randExt, nChar, err := EncodeURL(fullUrl, addr, shard)
 	if err != nil {
 		return "", "Error shortening URL"
 	}
-	// fmt.Printf("ReqShort: addr=%v;  shard=%v  shortUrl=%v\n", addr, shard, shortUrl)
+	fmt.Printf("ReqShort: addr=%v;  shard=%v  shortUrl=%v\n", addr, shard, shortUrl)
 
 	dB, err := OpenUrlDB(shard, dbPassword())
 	if err != nil {
