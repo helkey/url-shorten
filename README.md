@@ -657,13 +657,10 @@ This can be used to compare cloud host solutions, where the lowest price depends
 This Digital Ocean price comparison apparently uses the cost of reserved instances. Hosting costs can be reduced significantly
 by using a mix of reserved and low-price spot instances, but this requires additional engineering effort to set this up.
 
-### Google
-Google has the most polished managed Kubernetes service (which comes as no surprise, as Kubernetes was developed at Google).
+### Google GKE
+Google Kubernetes installers include GKE (Google Kubernetes Engine), Kube the Hard Way, Stack Point Cloud, and Typhoon.
+GKE has the most polished managed Kubernetes service (which comes as no surprise, as Kubernetes was developed at Google).
 <!--- id=18080390: GKE only 'decent' k8s implementation, EKS and AKS are not real contenders --->
-
-Tools like Hashicorp Packer somewhat reduce the effort of supporting multiple cloud vendors by providing common tooling across platforms.
-Here Packer will be used to build [Google Compute Engine images] for deploying to Kubernetes on GKE. Packer can also be integrated
-into a continuous integration workflow, for instance using [Jenkins](https://cloud.google.com/solutions/automated-build-images-with-jenkins-kubernetes).
 
 The first step is to set up a [Google services account file](https://www.packer.io/docs/builders/googlecompute.html).
 This services account file is not required if running the Packer builder from a properly configured GCE instance.
@@ -694,12 +691,17 @@ Here we will use a CentOS (or Red Hat) image for compatibility with the AWS Linu
 Set up a Google cloud [service account key](https://www.packer.io/docs/builders/googlecompute.html), and download as a .json file into the default gcloud directory (~/.config/gcloud/).
 
 ### Azure
+Azure Kubernetes installers includ ACS (Azure Container Service) and AKS (Azure Kubernetes Service).
+[AKS nodes](https://docs.microsoft.com/en-us/azure/aks/acs-aks-migration) use managed disks, support multiple node pools, set of regions, and has a hosted control plane.
+
 Kubernetes on Azure can be deployed [from a command line interface](https://dev.to/azure/kubernetes-from-the-beginning-part-i-4ifd).
 Start by setting up an Azure [account](https://azure.microsoft.com/en-us/free/), and get a $200 credit during the first 12 months of use.
 
 ### Amazon EKS
+Amazon Kubernetes installers include CoreOS Tectonic, Heptio Quickstart, Jetstack Tarmak, Kismatic, Kube-AWS, Kops, Kubicorn, and Stack Point Cloud.
+
 Amazon was an early leader in cluster management with their proprietary Amazon EC2 Container Service (ECS).
-The rapid rise of Kubernetes as an open source solution has left Amazon somewhat behind in deploying managed Kubernetes services.
+The rapid rise of Kubernetes as an open source solution has left Amazon somewhat behind in deploying their own managed Kubernetes services.
 
 Amazon now offers [Elastic Kubernetes Service](https://docs.aws.amazon.com/eks/latest/userguide/what-is-eks.html).
 <div style="margin-left: 150px"><img src="figs/what-is-eks.png" alt="Amazon EKS managed Kubernetes" style="width:600px;"/></div> (EKS),
@@ -955,7 +957,6 @@ kubectl logs <pod name>
 kubectl describe pod <pod name> # SSH to pod and run Docker
 ```
 
-
 ## Kubernetes Orchestration
 Kubernetes [orchestration functions](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/) include
 creating a deployment, updating the state of pods, rolling back to an earlier revision, scaling up deployment,
@@ -968,5 +969,20 @@ Many competing software services have been quickly built up to provide these fea
 There are many monitoring solutions to help managed Kubernetes deployments, including [Kube-prometheus](https://github.com/coreos/kube-prometheus)
 which uses Prometheus to monitor Kubernetes applications, and Heptio [Sonobuoy](https://github.com/heptio/sonobuoy).
 
+## Kubernetes Cluster Security
+By default, a user with a [shell in a container] can possible
+  1. Retrieve source code and credentials
+  2. Elevate privilieges to access all workloads
+  3. Get root access to the cluster nodes
+  4. Access other cloud systems and data
+  
+### Securing Docker Containers
 
+### Securing Cloud Infrastructure
+Cloud infrastructure needs to be secured, starting with 
+  [securing Linux machines](https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/6/pdf/security_guide/Red_Hat_Enterprise_Linux-6-Security_Guide-en-US.pdf),
+  using private IP addresses on a private subnet, firewall ports that need to be exposed, and running a bastion host for any [SSH access](https://dev.gentoo.org/~swift/docs/security_benchmarks/openssh.html)
+    to Kubernetes nodes.
 
+### Securing Kubernetes
+[Kube-bench] will [eliminate 95%](https://github.com/freach/kubernetes-security-best-practice) of Kubernetes confiugration flaws.
