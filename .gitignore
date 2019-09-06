@@ -1,4 +1,6 @@
-*.go~ *.tf~
+*.bak
+*~
 .terraform/
 terraform.tfvars
 terraform.tfstate*
+

@@ -370,7 +370,6 @@ Classless inter-domain routing (CIDR) blocks are used to define
   [IP address ranges](https://docs.aws.amazon.com/vpc/latest/userguide/VPC_Subnets.html)
 allowed for internal connections.
 
-
 ```terraform
 resource "aws_subnet" "private" {
   vpc_id = "${aws_vpc.default.id}"
@@ -501,10 +500,8 @@ resource "aws_autoscaling_group" "auto" {
   lifecycle {
     create_before_destroy = true
   }
-}
-...
+} ...
 ```
-
 
 ### Bastion Host
 The architecture used here has a public-facing load-balancer, which forwards traffic to compute instances for serving shortened or expanded URLs.
@@ -579,9 +576,9 @@ which uses the Raft consensus algorithm.
 
 # Infrastructure Orchestration
 Orchestration functions include
-* Load-balance groups of containers to handle high levels of traffic
-* Scheduling containers to run based on load and available resources
-* Implement access policies for applications running inside containers
+  * Load-balance groups of containers to handle high levels of traffic
+  * Scheduling containers to run based on load and available resources
+  * Implement access policies for applications running inside containers
 
 
 Terraform was used here for provisioning cloud resources due to its simplicity and ease of use.
@@ -597,14 +594,15 @@ Two years later, 71% of respondents were
   [using Kubernetes to manage their containers](https://techcrunch.com/2017/12/18/as-kubernetes-surged-in-popularity-in-2017-it-created-a-vibrant-ecosystem/).
 
 Kubernetes provides
-*Scaling
-  Can scale containers automatically based on CPU utilization
-*Recovery
-  Kills and restarts unresponsive containers, while rerouting traffic to functioning containers.
-*Load balancing
-*Service discovery
-*Automatic rollouts
-*Secret management
+
+  * Scaling
+    - Can scale containers automatically based on CPU utilization
+  * Recovery
+    - Kills and restarts unresponsive containers, while rerouting traffic to functioning containers.
+  * Load balancing
+  * Service discovery
+  * Automatic rollouts
+  * Secret management
 
 Kubernetes is particularly well suited for a hybrid server use case, for example where some of the resources
   are in an on-prem data center, and other resources are in the cloud.
@@ -754,17 +752,17 @@ Running k3s on Windows requires running Linux under Vmware or Virtualbox.
 ## Kubernetes Orchestration (GKE)
 GKE was chosen for deployment, as it looked significantly easier to set up Kubernetes on Google than Amazon.
 Steps to [deploy on GKE](https://cloud.google.com/kubernetes-engine/docs/tutorials/hello-app)are:
-* Create a GKE project on the Google Cloud Platform Console (don't use upper-case letters)
-* Enable billing for project (Google offering $300 credit for up to one year)
-* Package app into a Docker image
-* Validate locally using Minikube (if desired)
-* Upload Docker image to registry
-* Create GKE container cluster
-* Deploy app to cluster
-* Expose app to Internet
-* Scale up ydeployment
+  * Create a GKE project on the Google Cloud Platform Console (don't use upper-case letters)
+  * Enable billing for project (Google offering $300 credit for up to one year)
+  * Package app into a Docker image
+  * Validate locally using Minikube (if desired)
+  * Upload Docker image to registry
+  * Create GKE container cluster
+  * Deploy app to cluster
+  * Expose app to Internet
+  * Scale up ydeployment
 
-Needed to set up a ** access file for providing Terraform with access.
+Needed to set up a file for providing Terraform with access.
 
 ### Database Allocation - Terraform
 Set up a Terraform provider for GKE [Google Cloud provider](https://cloud.google.com/community/tutorials/getting-started-on-gcp-with-terraform).
@@ -907,29 +905,33 @@ The Google initial free trial period allows only one static IP, although additio
 by authorizing a paid account (you can still use your credits allocated for the trial period).
 Quota upgrades take an estimated 2 days to process.
 ```sh
-kubectl expose deployment url-addr --type=LoadBalancer --port 80 --target-port 8088 --load-balancer-ip='34.x.y.z'
+kubectl expose deployment url-addr --type=LoadBalancer --port 8088 --target-port 8088 --load-balancer-ip='34.x.y.z'
 ```
 
-Verify that the static IP address has been allocated, address service is running, and deploy URL shortener and URL expander services.
+Verify that the static IP address has been allocated, and address service is running.
 ```sh
 kubectl get services | grep url-addr # verify that public IP assigned
 kubectl describe services url-addr
-kubectl logs url-addr
-curl http://34.x.y.z/addr
-  363120899/1 # (example-every run will produced different address range)
+kubectl logs url-addr-*podID*
+curl -w http://34.x.y.z:8088/addr
+  $ 363120899/1 # (example-every run will produced different address range)
 ```
 
-(Assign a random public IP address - Google charges a small fee for a reserved static IP).
-```sh
-kubectl create deployment url-sh --image=gcr.io/urlshorten-2505/reqshort:v0.1
-kubectl expose deployment url-sh --type=LoadBalancer --port 80 --target-port 8088 --load-balancer-ip='35.186.222.159'
-curl http://34.83.188.145/create/?source=&url=KubernetesRocks # Get shortened URL  117.26; 188.145
-kubectl logs pod/url-sh-*podID* # verify pod responding, generating shortened URL
-```
-
+Deploy URL shortener, and assign a random public IP address (GCP charges a small fee for reserving a static IP).
 ```sh
 kubectl create deployment url-sh --image=gcr.io/urlshorten-2505/reqshort:v0.1
 kubectl expose deployment url-sh --type=LoadBalancer --port 80 --target-port 8088
+kubectl logs pod/url-sh-*podID* # check logs if needed
+curl "http://34.83.49.202/create/?source=&url=Kubernetes" # Get shortened URL
+  $ 8wc0000sUxxV # shortened URL
+```
+
+Deploy URL expander, and assign a random public IP address.
+```sh
+kubectl create deployment url-ex --image=gcr.io/urlshorten-2505/reqexpand:v0.1
+kubectl expose deployment url-ex --type=LoadBalancer --port 80 --target-port 8088
+kubectl logs pod/url-ex-*podID* # check logs if needed
+curl http://34.x.y.z/
 ```
 
 [Delete deployment](https://coreos.com/tectonic/docs/latest/tutorials/sandbox/deleting-deployment.html)
