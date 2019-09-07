@@ -611,8 +611,10 @@ Kubernetes is particularly well suited for a hybrid server use case, for example
 [Etcd](https://etcd.io) is a distributed key-value store used for the most critical data in a distributed system.
 [A Closer Look at Etcd: The Brain of a Kubernetes Cluster](https://medium.com/better-programming/a-closer-look-at-etcd-the-brain-of-a-kubernetes-cluster-788c8ea759a5)
 
-    !fig: etcd on the Kubernetes master nodes (Kubernetes documentation)
-    !fig: etcd deployed to an external cluster (Kubernetes documentation)
+<!--- TODO --->
+fig: etcd on the Kubernetes master nodes (Kubernetes documentation) 
+
+fig: etcd deployed to an external cluster (Kubernetes documentation)
 
 ### Pod Creation
 The nice Heptio Kubernetes article "[Jazz Improv over Orchestration](https://blog.heptio.com/core-kubernetes-jazz-improv-over-orchestration-a7903ea92ca)" 
@@ -729,7 +731,7 @@ Open source tools...
 ### Minikube
 Minikube can [be installed](https://kubernetes.io/docs/tasks/tools/install-minikube/) on a local machine
 to simplify testing without setting up cloud resources. To check if virtualization is supported on Linux
-verify that the following command has a non-empty output.
+verify that this command has a non-empty output:
 ```sh
 grep -E --color 'vmx|svm' /proc/cpuinfo
 ```
@@ -746,14 +748,18 @@ k3s kubectl get node
 ```
 
 To start a single-node server, run `k3s server`, which will register local host as an agent.
-To add more nodes to the cluster, run `k3s agent --server ${URL} --token ${TOKEN}` on another host.
+To add more nodes to the cluster, on another host run
+```sh
+k3s agent --server ${URL} --token ${TOKEN}
+```
+
 
 k3s does not work on WSL, as WSL is like a Linux in single user mode. k3s requires systemd or openrc as a process supervisor.
 Running k3s on Windows requires running Linux under Vmware or Virtualbox.
 
 ## Kubernetes Orchestration (GKE)
 GKE was chosen for deployment, as it looked significantly easier to set up Kubernetes on Google than Amazon.
-Steps to [deploy on GKE](https://cloud.google.com/kubernetes-engine/docs/tutorials/hello-app)are:
+Steps to [deploy on GKE](https://cloud.google.com/kubernetes-engine/docs/tutorials/hello-app) are:
 * Create a GKE project on the Google Cloud Platform Console (don't use upper-case letters)
 * Enable billing for project (Google offering $300 credit for up to one year)
 * Package app into a Docker image
@@ -892,7 +898,7 @@ gcloud compute addresses create addr-reqaddr --region us-west1
 gcloud compute addresses list
 ```
 
-Using kubectl, deploy application(s) to the [Container Registry](https://cloud.google.com/container-registry).
+Using kubectl, deploy application(s) to the Google [Container Registry](https://cloud.google.com/container-registry).
 ```sh
 kubectl create deployment url-addr --image=gcr.io/urlshorten-2505/reqaddr-image:v0.1
 kubectl get pods
@@ -944,10 +950,10 @@ gcloud container clusters delete url-cluster
 ```
 
 ### Troubleshooting Kubernetes Deployment
-[Most Common Reasons Kubernetes Deployments Fail](https://kukulinski.com/10-most-common-reasons-kubernetes-deployments-fail-part-1/)
-Two of the most common problems are
-* (a) having the wrong container image specified, and
-* (b) trying to use private images without providing registry credentials.
+Two of the 
+[most common reasons kubernetes deployments fail](https://kukulinski.com/10-most-common-reasons-kubernetes-deployments-fail-part-1/) are
+* having the wrong container image specified
+* trying to use private images without providing registry credentials.
 
 [Debugging Kubernetes services](http://kubernetes.io/docs/user-guide/debugging-services/)
 
@@ -1030,9 +1036,9 @@ Kubernetes still should be routinely checked for exploit vulnerabilities. [Vulne
 * Access Kubelete API
     - exec into containers, ask for logs
     -`curl -sk https://...:10250/runningpods/ > allpods` # from read/write port; dump json to file
-	# `run`=command; `default`=namespace; `cmd=ls`=list directory
-	-`curl -sk https://...:10250/run/default/app_folder -d "cmd=ls -al /"` # from read/write port; dump json to file
-    # repeat `curl` sequence down the directory tree to `/app`, get source code for interesting apps
+	- from read/write port; dump json to file; `run`=command; `default`=namespace; `cmd=ls`=list directory
+	- `curl -sk https://...:10250/run/default/app_folder -d "cmd=ls -al /"`
+    - repeat `curl` sequence down the directory tree to `/app`, get source code for interesting apps
 * Access Etcd Service directly
     - most installations don't expose the main Etcd service, but some install a separate instance for other apps or network policies
 * Obtain root on underlying node
