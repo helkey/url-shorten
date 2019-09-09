@@ -4,11 +4,10 @@ URL Shortener Design Doc
 =============
 Uniform Record Locator (URL) shorteners are used to access Internet resources, by providing a short URL to a resource that is easily typed and compactly stored.
 Well-known URL shorteners include:
-
-  * Bitly: the most popular and one of the oldest URL shorteners is used by Twitter for inserting links in tweets.
+* Bitly: the most popular and one of the oldest URL shorteners is used by Twitter for inserting links in tweets.
   By 2016 they had shortened 26 billion URLs
-  * TinyURL. A simple shortener that requires no sign-up and allows users to customize the keyword
-  * Goo.gl: URL shortener (DISCONTINUED SERVICE) written and
+* TinyURL. A simple shortener that requires no sign-up and allows users to customize the keyword
+* Goo.gl: URL shortener (DISCONTINUED SERVICE) written and
      [shut down](https://developers.googleblog.com/2018/03/transitioning-google-url-shortener.html) by Google
 
 Most URL shortener use is free, but projections for Bitly revenue is in the
@@ -580,7 +579,6 @@ Orchestration functions include
   * Scheduling containers to run based on load and available resources
   * Implement access policies for applications running inside containers
 
-
 Terraform was used here for provisioning cloud resources due to its simplicity and ease of use.
 Schedulers popular for large and complex systems include Docker Swarm, Fleet, Kubernetes, Marathon, [Mesos](http://mesos.apache.org/), and [Nomad](https://www.nomadproject.io/).
 In addition, [Amazon ACS](https://aws.amazon.com/ecs/) and [Microsoft ACI](https://azure.microsoft.com/en-us/services/container-instances/)
@@ -628,11 +626,15 @@ As a demonstration, I ported some of the CLI commands to [Terraform and Packer](
 using slawekzachcial's [AWS fork](https://github.com/slawekzachcial/kubernetes-the-hard-way-aws) (as Kelsey dropped AWS support from his project).
 
 ## Kubernetes Management
-Managed services offer ***. [Managed Kubernetes services](https://blog.codeship.com/a-roundup-of-managed-kubernetes-platforms/)
-include Google, Azure, Amazon, and [Digital Ocean](https://www.digitalocean.com/products/kubernetes/).
+Managed services offer customers help running cloud services in prudction. 
+[Managed Kubernetes services](https://blog.codeship.com/a-roundup-of-managed-kubernetes-platforms/) include Google, Azure, Amazon, and 
+[Digital Ocean](https://www.digitalocean.com/products/kubernetes/).
 
-There are also many options for software to manage Kubernetes on the major cloud providers, such as 
-  [OpenShift](), [VMWare](), [Stackpoint](), and [AppsCode]().
+There are also many options for software to manage Kubernetes on the major cloud provider stacks, such as 
+[OpenShift](https://www.openshift.com/), [VMWare](https://cloud.vmware.com/vmware-enterprise-pks), [Stackpoint](https://stackpoint.io/), 
+and [AppsCode](https://appscode.com/). Appscode also has a suite of open-source tools for helping you manage your own Kubernetes installation, including
+[KubeDB database](https://kubedb.com/), [ElasticSearch](https://github.com/kubedb/elasticsearch), [KubeVault Hashicorp secrets management](https://kubevault.com/),
+[Stash backup](https://appscode.com/products/stash/), and [Voyager ingress](https://appscode.com/products/voyager/) tools.
 
 ### Cloud Cost Comparison
 Many software services have good margins, but for many companies the cost of deploying servers is still a significant portion of business expense.
