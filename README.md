@@ -965,6 +965,23 @@ kubectl logs <pod name>
 kubectl describe pod <pod name> # SSH to pod
 ```
 
+## Kafka Message Broker
+The URL shortener address server needs to be very high reliability. This was set up initially as a REST service,
+with the intention to migrate this service to a consensus software like Zookeeper.
+
+Kafka is a widely-used distributed streaming platform built on Zookeeper that is very capable of handling this communication.
+Kafka is a stateful application, and Kubernets (from ver 1.9) can manage stateful applications using StatefulSets, but reviews 
+of using Kubernetes to manage state is still mixed. 
+
+Kafka is already designed to run redudantly directly on cloud hardware, so Kafka will be set up this will be set up to 
+run directly on GCP instances using Terraform, with Packer to manage the instance configuration.
+Kafka will be set up on a single GCP instance to minimize server cost (except during redundancy testing), 
+but Kafka won't provide high reliability unless it is running on multiple independant instances for redundance.
+
+Google has a Kafka VM Image which makes Kafka [easy to set up](https://www.learningjournal.guru/courses/kafka/kafka-foundation-training/kafka-in-gcp/).
+To make it easy to turn the Kafka server(s) off, the addr server will provide addr values both over REST and Kafka,
+and then the URL shortener instances will select where to get addr values from.
+
 
 ## Kubernetes Orchestration
 Kubernetes [orchestration functions](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/) include
