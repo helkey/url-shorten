@@ -977,6 +977,7 @@ Zookeeper is used on Apache Hadoop (for configuration management), Apache Kafka(
 Kafka is a widely-used distributed messaging platform built on Zookeeper capable of handling orders of magnitude higher message rates
 than needed in this URL shortening application for distributing address ranges. However, Kafka is designed for a producer/consumer architecture,
 where the producer determines the rate of generating messages. 
+<div style="margin-left: 150px"><img src="figs/kafka-apis.png" alt="Kafka architecture" style="width:600px;"/></div>
 
 This URL shortener application is better suited to a request/response architecture, which 
 [Zookeeper supports directly](https://zookeeper.apache.org/doc/r3.1.2/zookeeperOver.html), so it seems better to use the underlying 
