@@ -1016,7 +1016,7 @@ There are many monitoring solutions to help managed Kubernetes deployments, incl
 which uses Prometheus to monitor Kubernetes applications, and Heptio [Sonobuoy](https://github.com/heptio/sonobuoy).
 
 
-## Kubernetes Cluster Security
+## <a name="k8s-security"></a>Kubernetes Cluster Security
 Many of the Kubernetes installation defaults are not sufficiently secure. 
 CIS operating specific benchmarks are not aware of the Kubernetes workload. By default, 
 a user with a [shell in a container](https://www.youtube.com/watch?v=vTgQLzeBfRU) can possibly:
