@@ -626,7 +626,7 @@ As a demonstration, I ported some of the CLI commands to [Terraform and Packer](
 using slawekzachcial's [AWS fork](https://github.com/slawekzachcial/kubernetes-the-hard-way-aws) (as Kelsey dropped AWS support from his project).
 
 ## Kubernetes Management
-Managed services offer customers help running cloud services in prudction. 
+Managed services offer customers help running cloud services in production. 
 [Managed Kubernetes services](https://blog.codeship.com/a-roundup-of-managed-kubernetes-platforms/) include Google, Azure, Amazon, and 
 [Digital Ocean](https://www.digitalocean.com/products/kubernetes/).
 
@@ -809,13 +809,15 @@ for running in a Linux container.
 CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main
 ```
 
-Install the application in a Docker container (it is possible to compress these Go-based images so that they are much smaller):
+Install the application in a Docker container with a Dockerfile:
 ```sh
 FROM golang:alpine
 RUN mkdir /app
 Add ReqAddr /app/ReqAddr
 CMD ["/app/ReqAddr"]
 ```
+(it is possible to compress these Go-based images so that they are much smaller)
+
 Note that if the application makes SSL requests, SSL root certificates must also be
 [added to the Docker container](https://blog.codeship.com/building-minimal-docker-containers-for-go-applications/).
 
